@@ -60,6 +60,13 @@ same field values across repeated runs with identical inputs, so the demo runs
 end to end with no secrets and never stalls on a live failure. You can also
 force the fallback during rehearsals by setting `USE_MOCK_AI=true`.
 
+The live Grok Voice path uses `XAI_VOICE_WS_URL` and `XAI_VOICE_MODEL`. The
+reactive workflow timing is configurable: `CHECKIN_DELAY` (how long before the
+male-track re-test Check_In fires — represents the ~72-day / ~10–12-week
+sperm-regeneration horizon; set to seconds on stage so it is demoable) and
+`APPROVAL_WAIT_TIMEOUT` (how long the booking Approval_Gate pauses awaiting
+`couple.booking.approved` before it expires and leaves the appointment pending).
+
 Copy `.env_example` to `.env.local` and fill in values as needed:
 
 ```bash
@@ -95,13 +102,23 @@ Fairy follows a "pure core, impure shell" structure:
   correctness lives: the trying-window engine, missing-data detector,
   trying-duration rule, readiness score, and the structured-result extractors.
   These are heavily covered by property-based tests.
-- **Agent (`lib/agent/`)** — the Grok Voice adapter exposing `runInsuranceCall`
-  / `runClinicCall`. It tries the live path and transparently falls through to
-  the deterministic Mock_Fallback on unavailability or failure.
-- **Workflow (`lib/inngest/`)** — the seven-step Inngest function triggered by
-  `fertility.intake.completed`: extract profiles → compute trying window →
-  detect missing data → check duration rule → generate tasks → run simulated
-  calls → build the doctor summary.
+- **Agent (`lib/agent/`)** — the genuinely agentic Grok Voice adapter exposing
+  `runInsuranceCall` / `runClinicCall`. It opens a real `Live_Voice_Session`
+  over a WebSocket (`XAI_VOICE_WS_URL` / `XAI_VOICE_MODEL`), speaks its own
+  questions, listens to a live human (during the demo, a presenter plays the
+  insurance rep / clinic scheduler), and extracts the structured result from the
+  real transcript. `call-scripts.md` is a checklist of objectives, not a verbatim
+  script. The deterministic Mock_Fallback is a **safety net only**, engaged when
+  the live session is unavailable or fails mid-call.
+- **Workflow (`lib/inngest/`)** — an event-driven **reactive graph** triggered by
+  `fertility.intake.completed`: analyze-her ∥ analyze-his (parallel) → compute
+  trying window → detect missing data → check duration rule → generate tasks →
+  insurance call ∥ clinic call (parallel, live voice) → pause at a human-in-the-loop
+  Approval_Gate (`waitForEvent couple.booking.approved`) → finalize the June 25
+  booking → schedule a delayed male-track Check_In (`step.sleep`, `CHECKIN_DELAY`)
+  → build the doctor summary. A separate function reacts to `call.completed` to
+  refresh the summary. Four events drive the graph: `fertility.intake.completed`,
+  `call.completed`, `couple.booking.approved`, `checkin.due`.
 - **Chat (`lib/chat/`, `app/api/chat/`)** — grounded chat scoped to the single
   seed couple, answering in a fixed five-section format, with a Mock_Fallback.
 - **Config (`lib/config.ts`)** — the single source of truth for secret
