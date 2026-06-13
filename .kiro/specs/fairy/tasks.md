@@ -114,11 +114,11 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Implement insurance and clinic extractors mapping a transcript/mock responses to the exact `call-scripts.md` schemas; assign each created task to exactly one Her/His/Together column; mark unextractable fields unresolved + add a follow-up task while preserving extracted fields
     - _Requirements: 6.2, 6.3, 6.5, 5.2, 5.5_
 
-  - [-]* 7.2 Write property test for task column assignment
+  - [x]* 7.2 Write property test for task column assignment
     - **Property 10: Every task is assigned to exactly one column**
     - **Validates: Requirements 5.2, 5.5**
 
-  - [-]* 7.3 Write property test for unresolved-field isolation
+  - [x]* 7.3 Write property test for unresolved-field isolation
     - **Property 16: Unresolved fields are isolated**
     - **Validates: Requirements 6.5**
 
@@ -140,7 +140,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - _Requirements: 11.1, 11.2_
 
 - [ ] 9. Implement the Voice Agent and Mock_Fallback (Owner: Person B)
-  - [ ] 9.1 Implement `lib/agent/` adapter and Mock_Fallback
+  - [-] 9.1 Implement `lib/agent/` adapter and Mock_Fallback
     - Implement `runInsuranceCall` / `runClinicCall` that load the authorization packet, ask the 10/7 questions in exact order, produce a chronological transcript + extracted result, decline medical-decision requests, withhold member ID/DOB until verification is requested, and fall through to the deterministic Mock_Fallback on live failure; on clinic completion write back her/his/together tasks, a 2026-06-25 calendar event, and a coverage+appointment+bring-list summary
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6, 6.7, 6.8, 6.9, 15.5_
 
