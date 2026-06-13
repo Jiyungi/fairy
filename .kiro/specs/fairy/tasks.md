@@ -25,7 +25,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - _Requirements: 15.1, 15.2, 15.3, 15.7_
 
 - [ ] 2. Encode reference data and validation (Owner: split — see sub-tasks)
-  - [ ] 2.1 Build the reference constants layer (Owner: Person B)
+  - [-] 2.1 Build the reference constants layer (Owner: Person B)
     - Create `lib/reference/` typed constants for WHO 2021 limits, female hormone windows/targets, CPT codes, duration rule, clinic slots, and call scripts, sourced verbatim from the files in `/reference-data/`
     - Encode the Seed_Couple "Maya & Daniel" fixture and the mock insurance/clinic responses from `sample-couple.md`, `call-scripts.md`, `insurance-coverage-data.md`, and `clinic-intake-data.md`
     - _Requirements: 12.1, 12.2, 12.3, 11.3_
