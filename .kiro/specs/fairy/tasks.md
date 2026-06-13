@@ -122,20 +122,20 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - **Property 16: Unresolved fields are isolated**
     - **Validates: Requirements 6.5**
 
-- [ ] 8. Implement the data model and seeding (Owner: Person A)
-  - [-] 8.1 Create Supabase migrations
+- [x] 8. Implement the data model and seeding (Owner: Person A)
+  - [x] 8.1 Create Supabase migrations
     - Define the eight entities (couple, member, her_profile, him_profile, trying_window, task, calendar_event, call_record) with `null` representing MISSING
     - _Requirements: 11.1_
 
-  - [-] 8.2 Implement Supabase client, queries, and seed loader
+  - [x] 8.2 Implement Supabase client, queries, and seed loader
     - Implement `lib/db/` client and queries; implement the seed loader that writes Maya & Daniel exactly as in `sample-couple.md`; on missing/unparseable seed, refuse partial render and signal a load error
     - _Requirements: 11.2, 11.3, 1.6, 1.7_
 
-  - [ ]* 8.3 Write property test for persistence round-trip
+  - [x]* 8.3 Write property test for persistence round-trip
     - **Property 20: Persistence round-trip preserves values**
     - **Validates: Requirements 11.3**
 
-  - [ ]* 8.4 Write smoke test for seed population
+  - [x]* 8.4 Write smoke test for seed population
     - Assert migrations create all eight entities and the seed populates `couple_001`
     - _Requirements: 11.1, 11.2_
 
@@ -176,16 +176,16 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
 - [ ] 11. Checkpoint - Ensure core, data, agent, and workflow tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Build the Impeccable UI shell (Owner: Person A)
-  - [-] 12.1 Implement phone-frame shell components
+- [x] 12. Build the Impeccable UI shell (Owner: Person A)
+  - [x] 12.1 Implement phone-frame shell components
     - Build `PhoneFrame` (390px), `BottomTabs` (Home/Calendar/Tasks/Chat), `StickyHeader`, app-like cards, and a single `DisclaimerFooter` line via the Impeccable skill; complete a critique.md pass; no generic Tailwind fallback
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 14.1, 14.2_
 
-  - [ ]* 12.2 Write property test for the disclaimer/clutter rule
+  - [x]* 12.2 Write property test for the disclaimer/clutter rule
     - **Property 26: Single disclaimer, no synthetic-data clutter**
     - **Validates: Requirements 14.1, 14.2**
 
-  - [ ]* 12.3 Write structural render test for the shell
+  - [x]* 12.3 Write structural render test for the shell
     - Assert the 390px frame and the four bottom tabs render
     - _Requirements: 13.4_
 

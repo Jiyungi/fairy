@@ -1,10 +1,15 @@
+import { ListChecks } from "lucide-react";
+
+import { EmptyState } from "@/components/fairy/EmptyState";
+
+// Placeholder for Task 15 (Task delegation board). Shell chrome is provided
+// by the (tabs) layout.
 export default function TasksPage() {
   return (
-    <main className="p-6">
-      <h1 className="text-lg font-semibold">Tasks</h1>
-      <p className="text-muted-foreground text-sm">
-        Her / His / Together task delegation board.
-      </p>
-    </main>
+    <EmptyState
+      icon={ListChecks}
+      title="No tasks yet"
+      description="Follow-ups from your insurance and clinic calls will be split across Her, His, and Together here."
+    />
   );
 }

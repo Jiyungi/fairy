@@ -33,3 +33,55 @@ export function resolveGrokApiKey(
 export function hasGrokApiKey(env: NodeJS.ProcessEnv = process.env): boolean {
   return resolveGrokApiKey(env) !== null;
 }
+
+/**
+ * Supabase connection configuration (Req 11, 15.3).
+ *
+ * As with the Grok key, only variable *names* are referenced here — no secret
+ * values are committed. Resolution is guarded so importing the DB client never
+ * crashes when the environment is absent (tests / build run without a live DB);
+ * callers decide what to do when configuration is missing.
+ */
+export interface SupabaseConfig {
+  url: string;
+  /**
+   * The key the client authenticates with. Prefers the server-only service-role
+   * key (used for seeding and workflow writes) and falls back to the public
+   * anon key.
+   */
+  key: string;
+  /** True when the resolved key was the service-role key. */
+  usingServiceRole: boolean;
+}
+
+/**
+ * Resolve the Supabase URL and key from the environment. Prefers
+ * `SUPABASE_SERVICE_ROLE_KEY` (server-only) and falls back to
+ * `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Returns `null` when the URL or both keys are
+ * absent so the caller can run without a live database.
+ */
+export function resolveSupabaseConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): SupabaseConfig | null {
+  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!url) return null;
+
+  const serviceRole = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (serviceRole) {
+    return { url, key: serviceRole, usingServiceRole: true };
+  }
+
+  const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (anon) {
+    return { url, key: anon, usingServiceRole: false };
+  }
+
+  return null;
+}
+
+/** Whether a usable Supabase configuration is present in the environment. */
+export function hasSupabaseConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return resolveSupabaseConfig(env) !== null;
+}
