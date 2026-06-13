@@ -14,6 +14,7 @@
 // (Req 6.7).
 // ===========================================================================
 
+import { resolveGrokApiKey } from "@/lib/config";
 import {
   extractClinicResult,
   extractInsuranceResult,
@@ -38,12 +39,11 @@ export class LiveVoiceUnavailableError extends Error {
 /**
  * Resolve the Grok API key: `XAI_API_KEY` first, then `GROK_API_KEY` (Req 15.4).
  * Returns null when neither is set.
+ *
+ * Re-exported from the canonical implementation in `lib/config.ts` so existing
+ * importers of `@/lib/agent/live` keep working without duplicating the logic.
  */
-export function resolveGrokApiKey(): string | null {
-  const key = process.env.XAI_API_KEY ?? process.env.GROK_API_KEY;
-  if (typeof key === "string" && key.trim().length > 0) return key;
-  return null;
-}
+export { resolveGrokApiKey };
 
 /** True when a Grok key is configured (the live path MIGHT be attempted). */
 export function isLiveVoiceConfigured(): boolean {

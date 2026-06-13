@@ -244,7 +244,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - **Validates: Requirements 9.3**
 
 - [ ] 19. Integration, wiring, and configuration (Owner: Person B)
-  - [ ] 19.1 Wire the end-to-end demo path
+  - [-] 19.1 Wire the end-to-end demo path
     - Connect intake → workflow → window/missing-data → calls → her/his/together tasks + Jun 25 consult → doctor summary across the UI tabs so the demo runs without orphaned code; ensure live-call failure transparently uses the Mock_Fallback
     - _Requirements: 16.1, 16.3_
 
@@ -252,7 +252,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - With Mock_Fallback, assert intake → workflow → window/missing data → calls → tasks + Jun 25 consult → doctor summary completes
     - _Requirements: 16.1, 16.3_
 
-  - [ ] 19.3 Implement config/secrets and README
+  - [-] 19.3 Implement config/secrets and README
     - Implement `XAI_API_KEY` → `GROK_API_KEY` resolution falling back to Mock_Fallback when neither is set; configure Vercel deploy; write the README naming xAI, Inngest, Vercel, and Cursor and documenting HIPAA/BAA deferral; exclude Twilio/real telephony/real PHI
     - _Requirements: 15.4, 15.5, 15.6, 15.7, 15.8, 15.9_
 

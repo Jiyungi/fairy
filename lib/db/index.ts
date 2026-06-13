@@ -178,3 +178,33 @@ export async function getWorkflowRun(coupleId: string): Promise<WorkflowRun | nu
   const found = workflowRuns.get(coupleId);
   return found ? clone(found) : null;
 }
+
+// --- Read getters for the persisted workflow outputs ------------------------
+// Used by the read endpoints (app/api/workspace, app/api/workflow-status) so the
+// UI tabs can render the trying window, tasks, calendar, call records, and the
+// stored summary that the seven-step workflow persisted.
+
+export async function getTryingWindow(coupleId: string): Promise<TryingWindow | null> {
+  const found = tryingWindows.get(coupleId);
+  return found ? clone(found) : null;
+}
+
+export async function getTasks(coupleId: string): Promise<Task[]> {
+  const found = tasks.get(coupleId);
+  return found ? found.map(clone) : [];
+}
+
+export async function getCalendarEvents(coupleId: string): Promise<CalendarEvent[]> {
+  const found = calendarEvents.get(coupleId);
+  return found ? found.map(clone) : [];
+}
+
+export async function getCallRecords(coupleId: string): Promise<CallRecord[]> {
+  const found = callRecords.get(coupleId);
+  return found ? found.map(clone) : [];
+}
+
+export async function getSummary(coupleId: string): Promise<Summary | null> {
+  const found = summaries.get(coupleId);
+  return found ? clone(found) : null;
+}
