@@ -82,6 +82,20 @@ describe("AgentPhone config", () => {
     ).toBe(false);
   });
 
+  it("is disabled when Grok Voice is enabled (xAI sponsor takes precedence)", () => {
+    expect(
+      isAgentPhoneEnabled({
+        XAI_API_KEY: "xai-key",
+        USE_MOCK_AI: "false",
+        USE_GROK_VOICE: "true",
+        USE_AGENTPHONE: "true",
+        AGENTPHONE_API_KEY: "sk_test",
+        AGENTPHONE_AGENT_ID: "agt_1",
+        AGENTPHONE_TO_NUMBER: "+15551234567",
+      }),
+    ).toBe(false);
+  });
+
   it("resolves config when enabled and complete", () => {
     const cfg = resolveAgentPhoneConfig({
       AGENTPHONE_API_KEY: "sk_test",

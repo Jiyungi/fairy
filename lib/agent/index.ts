@@ -4,7 +4,7 @@
 //
 // The single interface the Inngest workflow (Task 10) calls. Each call:
 //   1. Loads the authorization packet fields before any call (Req 6.1).
-//   2. Tries AgentPhone (USE_AGENTPHONE=true), then Grok Voice; on failure falls
+//   2. Tries Grok Voice (xAI sponsor), then optional AgentPhone; on failure falls
 //      through to the deterministic Mock_Fallback and sets usedFallback
 //      accordingly (Req 6.7, 15.5).
 //   3. Returns a chronological agent/responder transcript + a structured result
@@ -50,13 +50,17 @@ export type {
   ResponderKind,
   ScriptStep,
 } from "./mock-fallback";
+export { LiveVoiceUnavailableError } from "./errors";
 export {
   isLiveVoiceConfigured,
-  LiveVoiceUnavailableError,
   resolveGrokApiKey,
   tryLiveClinicCall,
   tryLiveInsuranceCall,
 } from "./live";
+export {
+  createGrokVoiceEphemeralToken,
+  runGrokVoiceSession,
+} from "./grok-voice";
 export {
   isAgentPhoneEnabled,
   parseAgentPhoneTranscript,

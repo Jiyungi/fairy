@@ -2,18 +2,24 @@
 // Live voice adapter seam (lib/agent/live.ts) — Req 6.4, 6.7, 15.2, 15.4, 15.5
 //
 // Resolution order:
-//   1. AgentPhone (when USE_AGENTPHONE=true and configured)
-//   2. Grok Voice (when configured — stub for hackathon)
+//   1. Grok Voice Agent API (xAI sponsor — grok-voice-latest over WebSocket)
+//   2. AgentPhone (opt-in only when USE_GROK_VOICE=false and USE_AGENTPHONE=true)
 //   3. Throws LiveVoiceUnavailableError → Mock_Fallback in index.ts
 //
 // Transcripts are passed through lib/core/extract extractors (Req 6.4).
 // ===========================================================================
 
-import { isAgentPhoneEnabled, resolveGrokApiKey } from "@/lib/config";
+import {
+  isAgentPhoneEnabled,
+  isGrokVoiceEnabled,
+  resolveGrokApiKey,
+} from "@/lib/config";
 import {
   AgentPhoneUnavailableError,
   runAgentPhoneSession,
 } from "@/lib/agent/agentphone";
+import { runGrokVoiceSession } from "@/lib/agent/grok-voice";
+import { LiveVoiceUnavailableError } from "@/lib/agent/errors";
 import {
   extractClinicResult,
   extractInsuranceResult,
@@ -27,38 +33,23 @@ import type {
   Turn,
 } from "@/lib/types";
 
-export class LiveVoiceUnavailableError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "LiveVoiceUnavailableError";
-  }
-}
-
-export { resolveGrokApiKey };
+export { LiveVoiceUnavailableError, resolveGrokApiKey };
 
 export function isLiveVoiceConfigured(): boolean {
-  return resolveGrokApiKey() !== null || isAgentPhoneEnabled();
-}
-
-async function runGrokVoiceSession(
-  _callType: CallType,
-  _packet: AuthPacket,
-): Promise<Turn[]> {
-  if (!resolveGrokApiKey()) {
-    throw new LiveVoiceUnavailableError("No Grok API key configured");
-  }
-  throw new LiveVoiceUnavailableError(
-    "Live Grok Voice path is not enabled; use AgentPhone or Mock_Fallback.",
-  );
+  return isGrokVoiceEnabled() || isAgentPhoneEnabled();
 }
 
 /**
- * Run a live voice session: AgentPhone first, then Grok Voice stub.
+ * Run a live voice session: Grok Voice first (sponsor), then optional AgentPhone.
  */
 export async function runLiveVoiceSession(
   callType: CallType,
   packet: AuthPacket,
 ): Promise<Turn[]> {
+  if (isGrokVoiceEnabled()) {
+    return runGrokVoiceSession(callType, packet);
+  }
+
   if (isAgentPhoneEnabled()) {
     try {
       return await runAgentPhoneSession(callType, packet);
@@ -70,7 +61,9 @@ export async function runLiveVoiceSession(
     }
   }
 
-  return runGrokVoiceSession(callType, packet);
+  throw new LiveVoiceUnavailableError(
+    "No live voice path configured. Set XAI_API_KEY (Grok Voice) or USE_AGENTPHONE with AgentPhone env vars.",
+  );
 }
 
 export async function tryLiveInsuranceCall(

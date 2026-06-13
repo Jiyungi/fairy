@@ -94,6 +94,33 @@ export function resolveXaiModel(env: NodeJS.ProcessEnv = process.env): string {
   return env.XAI_MODEL?.trim() || "grok-4";
 }
 
+/** Grok Voice Agent WebSocket base URL (no query string). */
+export function resolveXaiVoiceWsUrl(env: NodeJS.ProcessEnv = process.env): string {
+  return (env.XAI_VOICE_WS_URL?.trim() || "wss://api.x.ai/v1/realtime").replace(/\/$/, "");
+}
+
+/** Grok Voice model for realtime sessions (sponsor path). */
+export function resolveXaiVoiceModel(env: NodeJS.ProcessEnv = process.env): string {
+  return env.XAI_VOICE_MODEL?.trim() || "grok-voice-latest";
+}
+
+/**
+ * Whether live calls should use the Grok Voice Agent API (xAI sponsor).
+ * Default on when a Grok key is set and mock fallback is not forced.
+ * Set USE_GROK_VOICE=false to opt out.
+ */
+export function isGrokVoiceEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const e = env as NodeJS.ProcessEnv;
+  if (!hasGrokApiKey(e)) return false;
+  if (isMockFallbackForced(e)) return false;
+  if (env.USE_GROK_VOICE !== undefined && !parseBooleanEnv(env.USE_GROK_VOICE)) {
+    return false;
+  }
+  return true;
+}
+
 export interface AgentPhoneConfig {
   apiKey: string;
   agentId: string;
@@ -129,10 +156,14 @@ export function resolveAgentPhoneConfig(
   };
 }
 
-/** True when USE_AGENTPHONE is enabled and required env vars are set. */
+/**
+ * True when USE_AGENTPHONE is enabled and required env vars are set.
+ * Suppressed while Grok Voice is enabled — AgentPhone uses its own model, not Grok.
+ */
 export function isAgentPhoneEnabled(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
+  if (isGrokVoiceEnabled(env)) return false;
   if (!parseBooleanEnv(env.USE_AGENTPHONE)) return false;
   return resolveAgentPhoneConfig(env) !== null;
 }
