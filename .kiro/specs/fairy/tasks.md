@@ -39,70 +39,70 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - **Property 11: Intake validation rejects out-of-range values**
     - **Validates: Requirements 2.7, 2.8**
 
-- [ ] 3. Implement the Trying-Window engine (Owner: Person A)
-  - [ ] 3.1 Implement `lib/core/trying-window.ts`
+- [x] 3. Implement the Trying-Window engine (Owner: Person A)
+  - [x] 3.1 Implement `lib/core/trying-window.ts`
     - Implement `computeTryingWindow` using only female inputs and the irregular-cycle algorithm; compute confidence/reasons; throw a typed `TryingWindowInputError` on missing/invalid required input while preserving prior state
     - _Requirements: 3.1, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ]* 3.2 Write property test for window algebra
+  - [x]* 3.2 Write property test for window algebra
     - **Property 1: Trying-window algebraic relationships**
     - **Validates: Requirements 3.1**
 
-  - [ ]* 3.3 Write property test for low-confidence reasons
+  - [x]* 3.3 Write property test for low-confidence reasons
     - **Property 2: Low-confidence reasons when unconfirmed and wide**
     - **Validates: Requirements 3.4, 3.5**
 
-  - [ ]* 3.4 Write property test for male-data independence
+  - [x]* 3.4 Write property test for male-data independence
     - **Property 3: Ovulation timing ignores male data**
     - **Validates: Requirements 3.6**
 
-  - [ ]* 3.5 Write property test for invalid-input rejection
+  - [x]* 3.5 Write property test for invalid-input rejection
     - **Property 4: Trying-window rejects invalid required input**
     - **Validates: Requirements 3.7**
 
-  - [ ]* 3.6 Write unit test for the seed-couple worked example
+  - [x]* 3.6 Write unit test for the seed-couple worked example
     - Assert fertile window Jun 27 – Jul 18, 2026; priority Jul 2 – Jul 17, 2026; confidence "Low"
     - _Requirements: 3.2, 3.3, 3.4_
 
-- [ ] 4. Implement the Missing-Data detector (Owner: Person A)
-  - [ ] 4.1 Implement `lib/core/missing-data.ts`
+- [x] 4. Implement the Missing-Data detector (Owner: Person A)
+  - [x] 4.1 Implement `lib/core/missing-data.ts`
     - Apply rule-based checks for day-3 FSH, day-3 estradiol, mid-luteal progesterone, prolactin, each WHO 2021 semen parameter, and insurance coverage status; produce a consolidated checklist of flags with grounded explanations and source file
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ]* 4.2 Write property test for missing-lab flags
+  - [x]* 4.2 Write property test for missing-lab flags
     - **Property 5: Missing labs are flagged with grounded explanations**
     - **Validates: Requirements 4.2, 4.3, 4.4**
 
-  - [ ]* 4.3 Write property test for semen-parameter flags
+  - [x]* 4.3 Write property test for semen-parameter flags
     - **Property 6: Semen parameters flagged borderline iff below WHO 2021 limit**
     - **Validates: Requirements 4.5**
 
-  - [ ]* 4.4 Write property test for insurance flag
+  - [x]* 4.4 Write property test for insurance flag
     - **Property 7: Insurance flagged unverified iff not confirmed**
     - **Validates: Requirements 4.6**
 
-  - [ ]* 4.5 Write property test for checklist completeness
+  - [x]* 4.5 Write property test for checklist completeness
     - **Property 8: Checklist completeness**
     - **Validates: Requirements 4.1, 4.7**
 
-- [ ] 5. Implement the Duration rule and Readiness score (Owner: Person A)
-  - [ ] 5.1 Implement `lib/core/duration-rule.ts`
+- [x] 5. Implement the Duration rule and Readiness score (Owner: Person A)
+  - [x] 5.1 Implement `lib/core/duration-rule.ts`
     - Apply the age-based threshold (under 35 → 12 months, 35+ → 6 months) and force early evaluation on any red flag
     - _Requirements: 7.4, 7.5, 7.6_
 
-  - [ ]* 5.2 Write property test for the age threshold
+  - [x]* 5.2 Write property test for the age threshold
     - **Property 13: Duration threshold by age**
     - **Validates: Requirements 7.4**
 
-  - [ ]* 5.3 Write property test for red-flag override
+  - [x]* 5.3 Write property test for red-flag override
     - **Property 14: Red flags force early evaluation**
     - **Validates: Requirements 7.5**
 
-  - [ ] 5.4 Implement `lib/core/readiness.ts`
+  - [x] 5.4 Implement `lib/core/readiness.ts`
     - Implement `applyTaskCompletion` that increases the score on completion and clamps the integer result to [0, 100]
     - _Requirements: 1.4, 5.4_
 
-  - [ ]* 5.5 Write property test for readiness bounds
+  - [x]* 5.5 Write property test for readiness bounds
     - **Property 9: Readiness score stays an integer within [0, 100]**
     - **Validates: Requirements 1.4, 5.4**
 
@@ -123,11 +123,11 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - **Validates: Requirements 6.5**
 
 - [ ] 8. Implement the data model and seeding (Owner: Person A)
-  - [ ] 8.1 Create Supabase migrations
+  - [-] 8.1 Create Supabase migrations
     - Define the eight entities (couple, member, her_profile, him_profile, trying_window, task, calendar_event, call_record) with `null` representing MISSING
     - _Requirements: 11.1_
 
-  - [ ] 8.2 Implement Supabase client, queries, and seed loader
+  - [-] 8.2 Implement Supabase client, queries, and seed loader
     - Implement `lib/db/` client and queries; implement the seed loader that writes Maya & Daniel exactly as in `sample-couple.md`; on missing/unparseable seed, refuse partial render and signal a load error
     - _Requirements: 11.2, 11.3, 1.6, 1.7_
 
@@ -177,7 +177,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Build the Impeccable UI shell (Owner: Person A)
-  - [ ] 12.1 Implement phone-frame shell components
+  - [-] 12.1 Implement phone-frame shell components
     - Build `PhoneFrame` (390px), `BottomTabs` (Home/Calendar/Tasks/Chat), `StickyHeader`, app-like cards, and a single `DisclaimerFooter` line via the Impeccable skill; complete a critique.md pass; no generic Tailwind fallback
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 14.1, 14.2_
 
