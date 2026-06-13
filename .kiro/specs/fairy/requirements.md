@@ -23,9 +23,18 @@ Three rules are non-negotiable and shape every requirement below:
 - **Trying_Window_Engine**: The rule-based component that computes the estimated trying window, priority days, and confidence label using the algorithm in cycle-fertility-reference.md.
 - **Missing_Data_Detector**: The rule-based component that produces a checklist of missing or borderline data items and explains why each matters.
 - **Task_Board**: The Her/His/Together task delegation board.
-- **Voice_Agent**: The Grok Voice agent that performs simulated insurance and clinic phone calls.
-- **Mock_Fallback**: The deterministic scripted/pre-recorded responder used when a live Grok or Grok Voice call is unavailable or fails.
-- **Inngest_Workflow**: The orchestrated, multi-step workflow triggered by the `fertility.intake.completed` event.
+- **Voice_Agent**: The Grok Voice agent that conducts a real-time, spoken conversation with a live human over a WebSocket to verify insurance and book the clinic. It is given the couple's data and missing-data flags as context and reasons about which objectives to cover, phrasing its own questions, asking follow-ups, skipping answered objectives, and extracting a structured result from the actual live transcript.
+- **Live_Voice_Session**: A real-time Grok Voice WebSocket session (configured via `XAI_VOICE_WS_URL` and `XAI_VOICE_MODEL`) in which the Voice_Agent speaks its questions aloud, listens to a human's spoken answers, and responds in real time. During the demo a human presenter plays the insurance rep and the clinic scheduler; there is no second Grok and no scripted bot responder.
+- **Call_Objectives**: The 10 insurance and 7 clinic items in call-scripts.md, treated as a checklist of objectives the Voice_Agent must cover (not a verbatim script). insurance-coverage-data.md and clinic-intake-data.md are a cue sheet of suggested facts for the human presenter, not a script for a bot.
+- **Mock_Fallback**: The deterministic safety-net responder that engages ONLY when the Live_Voice_Session is unavailable or fails mid-call (e.g., no microphone, bad network, missing key). When live works, results come from the real conversation. Deterministic means identical inputs always yield identical schema and field values, so the demo always completes.
+- **Call_Mode**: One of the two Voice_Agent modes, "Insurance verification" or "Clinic booking"; the human presenter switches role between them.
+- **Inngest_Workflow**: The event-driven, durable workflow graph triggered by the `fertility.intake.completed` event. It fans out parallel branches, pauses for human approval, and schedules a delayed check-in rather than running as a single linear function.
+- **Booking_Approval_Gate**: The `waitForEvent` pause in the Inngest_Workflow that holds after the calls complete and before the clinic appointment is finalized, waiting for a `couple.booking.approved` event (with a configured timeout).
+- **Booking_Approval_Card**: The UI card that asks the couple to approve booking the found slot and, on approval, emits `couple.booking.approved` so the same workflow run resumes.
+- **Check_In**: The scheduled, delayed male lifestyle/re-test check-in (≈72-day sperm-regeneration horizon) implemented with `step.sleep`/`sleepUntil`, configurable for the demo via `CHECKIN_DELAY`, that wakes to create a re-test task and reminder.
+- **Reactive_Summary_Function**: A separate Inngest function that listens for the `call.completed` event and reactively refreshes the Doctor_Summary, decoupled from the main workflow.
+- **Workflow_Events**: The events that drive the graph — `fertility.intake.completed` (start), `call.completed` (emitted per completed call), `couple.booking.approved` (resume gate), and `checkin.due` (scheduled wake).
+- **Call_Console**: The UI surface that shows the Live_Voice_Session as it happens — the live transcript of agent and human turns, a LIVE vs FALLBACK indicator, and the structured result filling in as the Voice_Agent extracts it.
 - **Doctor_Summary**: The copyable, doctor-ready summary grounded only in Reference_Data sources.
 - **Grounded_Chat**: The chat feature that answers couple-scoped questions in a fixed structured format with fixed sources.
 - **Shared_Calendar**: The calendar showing the trying window, priority days, reminders, booked consult, and tasks.
@@ -108,34 +117,37 @@ Three rules are non-negotiable and shape every requirement below:
 5. THE Task_Board SHALL assign each task to exactly one of the Her, His, or Together columns.
 6. IF the Voice_Agent fails to extract a structured result from a phone call, THEN THE Task_Board SHALL NOT create tasks from that call and SHALL display an indication that result extraction failed.
 
-### Requirement 6: Grok Voice Agent — Simulated Calls (F6)
+### Requirement 6: Grok Voice Agent — Live Agentic Calls (F6)
 
-**User Story:** As a couple, we want an agent to make the insurance and clinic calls for us, so that we avoid the phone-and-paperwork grind.
+**User Story:** As a couple, we want an agent to actually talk to the insurance rep and the clinic for us in real time, so that we avoid the phone-and-paperwork grind.
 
 #### Acceptance Criteria
 
 1. THE Voice_Agent SHALL load the authorization packet fields defined in call-scripts.md before any call: caller_identity, patient_names, dob (her and him), insurance (provider, member_id, group_number, policy_holder), call_objective, and guardrails.
-2. WHEN the Voice_Agent runs the insurance verification call, THE Voice_Agent SHALL ask the 10 insurance questions in the exact sequential order listed in call-scripts.md and extract the structured insurance result fields defined there: diagnostic_covered, semen_analysis_covered, hormone_labs_covered, prior_auth_required_for, in_network_lab, deductible, coinsurance_pct, oop_max, referral_required, and follow_up_tasks.
-3. WHEN the Voice_Agent runs the clinic booking call, THE Voice_Agent SHALL ask the 7 clinic questions in the exact sequential order listed in call-scripts.md and extract the structured clinic result fields defined there: booked (date, time, mode, clinic), bring_list, tasks (her, him, together), and calendar_event.
-4. WHEN the Voice_Agent completes a call, THE Voice_Agent SHALL produce a transcript as chronological agent and responder turns and a structured extracted result conforming to the schema defined for that call type in call-scripts.md.
-5. IF the Voice_Agent cannot extract a defined result field from a call, THEN THE Voice_Agent SHALL mark that field as unresolved, add a follow-up task to obtain the field, and preserve all other extracted fields.
+2. WHEN the Voice_Agent starts a call in either Call_Mode, THE Voice_Agent SHALL open a Live_Voice_Session over the Grok Voice WebSocket configured by `XAI_VOICE_WS_URL` and `XAI_VOICE_MODEL`, speak its questions aloud, and listen to and respond to the live human's spoken answers in real time.
+3. THE Voice_Agent SHALL treat the 10 insurance Call_Objectives and the 7 clinic Call_Objectives in call-scripts.md as a checklist of objectives rather than a verbatim script, phrasing each question itself from the couple's data and missing-data flags, asking follow-ups based on what the human actually says, skipping objectives already answered, and probing further on vague answers.
+4. WHEN the Voice_Agent completes a call, THE Voice_Agent SHALL produce a transcript of chronological agent and human turns and SHALL extract a structured result from that actual live transcript conforming to the schema defined for that Call_Mode in call-scripts.md — the insurance result fields (diagnostic_covered, semen_analysis_covered, hormone_labs_covered, prior_auth_required_for, in_network_lab, deductible, coinsurance_pct, oop_max, referral_required, follow_up_tasks) or the clinic result fields (booked {date, time, mode, clinic}, bring_list, tasks {her, him, together}, calendar_event).
+5. WHEN the Voice_Agent extracts the structured result, THE Voice_Agent SHALL parse the human's answers regardless of the order or wording in which they are given, and IF a defined result field cannot be extracted, THEN THE Voice_Agent SHALL mark that field unresolved, add a follow-up task to obtain it, and preserve all other extracted fields.
 6. WHEN the Voice_Agent completes the clinic booking call, THE Voice_Agent SHALL write back the her, his, and together tasks, a calendar event dated 2026-06-25, and a summary containing the coverage facts, the appointment, and the bring-list.
-7. IF a live Grok or Grok Voice call is unavailable or fails, THEN THE Voice_Agent SHALL use the deterministic Mock_Fallback, where deterministic means the Mock_Fallback returns the same schema and the same field values across repeated runs with identical inputs.
-8. WHILE a call is in progress and the responder has not requested identity verification, THE Voice_Agent SHALL withhold the member ID and date of birth, and SHALL disclose the member ID and date of birth only after the responder requests identity verification, per the call-scripts.md guardrails.
-9. IF a responder requests a medical decision or acceptance of treatment on the couple's behalf, THEN THE Voice_Agent SHALL decline the request and add a follow-up task for the couple to address it.
+7. IF the Live_Voice_Session is unavailable or fails at any point (no key, no microphone, bad network, or mid-call error), THEN THE Voice_Agent SHALL fall through to the deterministic Mock_Fallback, where deterministic means the Mock_Fallback returns the same schema and the same field values across repeated runs with identical inputs; the Mock_Fallback SHALL engage ONLY on such live failure.
+8. WHILE a call is in progress and the human has not requested identity verification, THE Voice_Agent SHALL withhold the member ID and date of birth, and SHALL disclose them only after the human requests identity verification, per the call-scripts.md guardrails.
+9. IF the human requests a medical decision or acceptance of treatment on the couple's behalf, THEN THE Voice_Agent SHALL decline the request and add a follow-up task for the couple to address it.
+10. WHILE a call is in progress, THE Fairy_System SHALL display the Call_Console showing the live transcript of agent and human turns as they occur, a LIVE versus FALLBACK indicator reflecting whether the result came from the Live_Voice_Session or the Mock_Fallback, and the structured result fields filling in as the Voice_Agent extracts them.
 
-### Requirement 7: Inngest Workflow (F7)
+### Requirement 7: Inngest Workflow — Event-Driven Reactive Graph (F7)
 
-**User Story:** As a demo audience, we want to see the workflow steps execute, so that the agentic orchestration is visible and credible.
+**User Story:** As a demo audience, we want to see a durable, event-driven workflow with parallel branches, a human approval pause, and a scheduled follow-up, so that the agentic orchestration is visibly more than a one-shot function.
 
 #### Acceptance Criteria
 
-1. WHEN the `fertility.intake.completed` event fires, THE Inngest_Workflow SHALL run the following seven steps, with each step starting only after the prior step completes: (1) extract profiles, (2) compute trying window, (3) detect missing data, (4) check trying-duration rule, (5) generate her/his/together tasks, (6) run simulated calls, and (7) build the doctor summary.
-2. THE Inngest_Workflow SHALL display the status of each step in the UI as one of the enumerated values pending, running, completed, or failed.
-3. IF a step fails, THEN THE Inngest_Workflow SHALL mark that step failed, halt all subsequent steps, and display an error indication identifying the failed step.
+1. WHEN the `fertility.intake.completed` event fires, THE Inngest_Workflow SHALL run the following graph: (a) analyze-her-data and analyze-his-data as two concurrent steps that fan out and then join (fan-in) before any later step proceeds; (b) compute trying window; (c) detect missing data; (d) check trying-duration rule; (e) generate her/his/together tasks; (f) the insurance call and the clinic call as two parallel steps that both must complete before the workflow proceeds; (g) finalize booking and the June 25 calendar event; (h) build/refresh the doctor summary.
+2. THE Inngest_Workflow SHALL persist and display the status of each step in the UI as one of the enumerated values pending, running, completed, failed, or paused.
+3. IF a step fails, THEN THE Inngest_Workflow SHALL mark that step failed, halt the steps that depend on it, and display an error indication identifying the failed step.
 4. WHEN the trying-duration step runs, THE Inngest_Workflow SHALL apply the Trying_Duration_Rule: a female partner under 35 (age strictly less than 35) uses a 12-month threshold and a female partner 35 or older (age 35 or greater) uses a 6-month threshold.
 5. IF any red-flag condition is present (irregular or absent periods, known PCOS or endometriosis, prior pelvic surgery, or known male factor as defined in cycle-fertility-reference.md), THEN THE Inngest_Workflow SHALL recommend early evaluation regardless of the trying-duration threshold.
 6. WHEN the Inngest_Workflow processes the Seed_Couple data, THE Inngest_Workflow SHALL apply the 12-month threshold because the female partner is 33 (less than 35), record 8 months trying, and recommend early evaluation due to the red flags of irregular cycles and borderline semen analysis per sample-couple.md.
+7. WHEN each call step completes, THE Inngest_Workflow SHALL emit a `call.completed` event carrying that call's result.
+8. THE analyze-her-data and analyze-his-data fan-out branches SHALL both reach completed status before the compute-trying-window step starts, and the insurance-call and clinic-call branches SHALL both reach completed status before the Booking_Approval_Gate is entered.
 
 ### Requirement 8: Doctor-Ready Summary (F8)
 
@@ -220,14 +232,15 @@ Three rules are non-negotiable and shape every requirement below:
 #### Acceptance Criteria
 
 1. THE Fairy_System SHALL be built with Next.js App Router, TypeScript, Tailwind, and shadcn/ui.
-2. THE Fairy_System SHALL use xAI Grok for reasoning and the Grok Voice Agent API for calls.
+2. THE Fairy_System SHALL use xAI Grok for reasoning and the Grok Voice Agent API for live calls, opening the Grok Voice WebSocket session via `XAI_VOICE_WS_URL` and `XAI_VOICE_MODEL`.
 3. THE Fairy_System SHALL use Inngest for workflow orchestration and Supabase for data storage.
 4. THE Fairy_System SHALL read the Grok API key from `XAI_API_KEY` in `.env.local` and SHALL fall back to `GROK_API_KEY` when `XAI_API_KEY` is absent.
-5. WHEN any Grok or Grok Voice call is made, THE Fairy_System SHALL provide a deterministic Mock_Fallback so the demo continues without interruption.
+5. WHEN any Grok or Grok Voice call is made, THE Fairy_System SHALL provide a deterministic Mock_Fallback that engages only on live failure so the demo continues without interruption.
 6. THE Fairy_System SHALL exclude Twilio, real telephony, and real PHI.
 7. THE Fairy_System SHALL run locally and deploy on Vercel.
 8. THE Fairy_System SHALL name the sponsor tools xAI, Inngest, Vercel, and Cursor in the README.
 9. THE Fairy_System SHALL document deferral of HIPAA compliance to production with a signed BAA in the README.
+10. THE Fairy_System SHALL read the Check_In delay from the `CHECKIN_DELAY` environment variable (e.g., "10s" for the demo, representing the ~72-day horizon), and SHALL document `XAI_VOICE_WS_URL`, `XAI_VOICE_MODEL`, and `CHECKIN_DELAY` in `.env_example`.
 
 ### Requirement 16: Working Demo Path
 
@@ -235,6 +248,50 @@ Three rules are non-negotiable and shape every requirement below:
 
 #### Acceptance Criteria
 
-1. THE Fairy_System SHALL support a demo path in which the pre-seeded couple onboards, completing intake fires the Inngest_Workflow with visible steps, the dashboard shows the trying window with Low confidence and missing data, the Voice_Agent runs the insurance and clinic calls, results become her/his/together tasks and a booked June 25 consult, and the Doctor_Summary is generated.
-2. THE Fairy_System SHALL complete the demo path in under three minutes.
-3. IF a live agent call fails during the demo, THEN THE Fairy_System SHALL use the Mock_Fallback so the demo path completes.
+1. THE Fairy_System SHALL support a demo path in which the pre-seeded couple onboards, completing intake fires the Inngest_Workflow with visible parallel branches (analyze her/his, then the insurance and clinic calls), the dashboard shows the trying window with Low confidence and missing data, the Voice_Agent runs the live insurance and clinic calls with a visible LIVE/FALLBACK indicator and live transcript, the workflow pauses at the Booking_Approval_Gate until the couple approves, results become her/his/together tasks and a booked June 25 consult, a scheduled Check_In is set, and the Doctor_Summary is generated and reactively refreshed.
+2. THE Fairy_System SHALL complete the demo path in under three minutes, including the Booking_Approval_Gate approval and a `CHECKIN_DELAY` set short enough to demonstrate the scheduled Check_In on stage.
+3. IF a live agent call fails during the demo, THEN THE Fairy_System SHALL use the Mock_Fallback so the demo path completes, and the Booking_Approval_Gate SHALL still operate on the fallback result.
+
+### Requirement 17: Human-in-the-Loop Booking Approval Gate (F17)
+
+**User Story:** As a couple, we want to approve the appointment before it is actually booked, so that the agent acts on our behalf only with our consent.
+
+#### Acceptance Criteria
+
+1. WHEN both call steps have completed and before the clinic appointment is finalized, THE Inngest_Workflow SHALL pause at the Booking_Approval_Gate using `waitForEvent`, set the booking step status to paused, and keep the appointment status as pending.
+2. WHILE the Booking_Approval_Gate is paused, THE Fairy_System SHALL display the Booking_Approval_Card stating that the agent verified coverage and found a June 25 slot and asking the couple to approve booking.
+3. WHEN the couple approves on the Booking_Approval_Card, THE Fairy_System SHALL emit the `couple.booking.approved` event and THE Inngest_Workflow SHALL resume the same workflow run from the paused gate and finalize the booking, the June 25 calendar event, and the summary.
+4. THE Inngest_Workflow SHALL finalize at most one booking for a given approval, and SHALL NOT double-book if the workflow run resumes.
+5. IF the Booking_Approval_Gate times out after its configured wait window expires without a `couple.booking.approved` event, THEN THE Inngest_Workflow SHALL leave the appointment pending and surface a "needs approval" state rather than booking automatically.
+
+### Requirement 18: Scheduled Male Check-In (F18)
+
+**User Story:** As the male partner working on lifestyle factors, I want Fairy to follow up after my sperm-regeneration window, so that I am reminded to re-test and review progress.
+
+#### Acceptance Criteria
+
+1. WHEN the male lifestyle-improvement track is active, THE Inngest_Workflow SHALL schedule a delayed Check_In using `step.sleep`/`sleepUntil` over the ≈72-day (approximately 10 to 12 weeks) sperm-regeneration horizon defined in semen-analysis-reference.md.
+2. THE Inngest_Workflow SHALL read the Check_In delay from the `CHECKIN_DELAY` environment variable so it can be set to seconds for the demo while the UI copy represents the ~72-day horizon.
+3. WHEN the Check_In delay elapses, THE Inngest_Workflow SHALL wake (via a `checkin.due` event) and create a "re-test semen analysis / review lifestyle progress" task and a corresponding reminder.
+
+### Requirement 19: Event-Driven Reactive Summary (F19)
+
+**User Story:** As a demo audience, we want the doctor summary to update reactively as calls complete, so that the system reads as a reactive event graph rather than one monolithic function.
+
+#### Acceptance Criteria
+
+1. THE Fairy_System SHALL define and use the Workflow_Events `fertility.intake.completed`, `call.completed`, `couple.booking.approved`, and `checkin.due`.
+2. THE Fairy_System SHALL implement the Reactive_Summary_Function as a separate Inngest function, decoupled from the main workflow, that listens for the `call.completed` event.
+3. WHEN a `call.completed` event fires, THE Reactive_Summary_Function SHALL refresh the Doctor_Summary from the latest persisted call results.
+
+### Requirement 20: Live Call Console and Parallel Workflow Visibility (F20)
+
+**User Story:** As a demo audience, we want to watch the live conversation, the parallel branches, and the approval pause happen on screen, so that the agentic, concurrent, human-in-the-loop nature is visibly demonstrable.
+
+#### Acceptance Criteria
+
+1. WHILE a call is in progress, THE Call_Console SHALL append each agent and human turn to the live transcript in chronological order as the turn occurs.
+2. THE Call_Console SHALL display a LIVE indicator while the result is sourced from the Live_Voice_Session and a FALLBACK indicator when the Mock_Fallback is used.
+3. WHILE the Voice_Agent extracts the structured result, THE Call_Console SHALL progressively display each extracted result field as it is resolved.
+4. WHEN the Inngest_Workflow runs fan-out branches concurrently, THE WorkflowViewer SHALL render those branches as parallel tracks (not a single line) and SHALL render each step's status as pending, running, completed, failed, or paused.
+5. WHEN a step is paused at the Booking_Approval_Gate, THE WorkflowViewer SHALL render that step with the paused status.

@@ -2,15 +2,17 @@
 
 ## Overview
 
-This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind + shadcn/ui (governed by the Impeccable skill), Inngest, Supabase, and the Grok / Grok Voice adapter with a deterministic Mock_Fallback. It follows the design's "pure core, impure shell" structure: the deterministic rules core (trying-window, missing-data, duration, readiness, extractors) is built and property-tested first, then the data layer, agent, workflow, and UI are layered on and wired into the sub-three-minute demo path. Property-based tests use `fast-check` + Vitest and each references a numbered design property. All clinical literals come from `/reference-data/`.
+This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind + shadcn/ui (governed by the Impeccable skill), Inngest, Supabase, and the Grok / Grok Voice adapter with a deterministic Mock_Fallback safety net. It follows the design's "pure core, impure shell" structure: the deterministic rules core (trying-window, missing-data, duration, readiness, extractors) is built and property-tested first, then the data layer, the live Voice_Agent, the event-driven Inngest graph (parallel fan-out/fan-in, a `waitForEvent` approval gate, a `step.sleep` scheduled check-in, and a separate reactive summary function), and the UI are layered on and wired into the sub-three-minute demo path. Property-based tests use `fast-check` + Vitest and each references a numbered design property. All clinical literals come from `/reference-data/`.
 
 ## Ownership
 
 Per requirements.md and design.md, Fairy is built by two people working in parallel. Tasks are split as follows. Owner labels apply to the top-level task and all its sub-tasks (including optional `*` test sub-tasks) unless a sub-task is individually labeled.
 
-- **Person A — Product & Data/UI:** Task 1 (project setup), Task 2.2 + 2.3 (validation schemas + test), Task 3 (trying-window), Task 4 (missing-data), Task 5 (duration/readiness), Task 8 (data model + seed), Task 12 (UI shell), Task 13 (intake forms), Task 14 (workspace views), Task 15 (task board), Task 16 (calendar), Task 17 (summary).
-- **Person B — Agent & Workflow:** Task 2.1 (reference constants), Task 7 (extractors), Task 9 (Voice agent + Mock_Fallback), Task 10 (Inngest workflow), Task 18 (grounded chat), Task 19 (end-to-end wiring + config/README).
+- **Person A — Product & Data/UI:** Task 1 (project setup), Task 2.2 + 2.3 (validation schemas + test), Task 3 (trying-window), Task 4 (missing-data), Task 5 (duration/readiness), Task 8 (data model + seed), Task 12 (UI shell), Task 13 (intake forms), Task 14 (workspace views), Task 15 (task board), Task 16 (calendar), Task 17 (summary), **Task 21 (parallel-branch WorkflowViewer), Task 22 (live Call Console — transcript + LIVE/FALLBACK indicator), Task 23 (booking approval card UI)**.
+- **Person B — Agent & Workflow:** Task 2.1 (reference constants), Task 7 (extractors), Task 9 (Voice agent + Mock_Fallback), Task 10 (Inngest workflow), Task 18 (grounded chat), Task 19 (end-to-end wiring + config/README), **Task 24 (live Grok Voice WebSocket session + adaptive objectives + transcript extraction), Task 25 (event-driven graph: fan-out/fan-in, waitForEvent approval gate, step.sleep check-in, reactive summary function, Workflow_Events)**.
 - **Both:** Checkpoints Task 6, Task 11, and Task 20.
+
+> Evolution note (Changes 1–5): Person B's Tasks 9/10 originally built the live-voice **seam** and a linear seven-step workflow. Tasks 24–25 evolve those into a genuine live Grok Voice conversation and the event-driven graph; Tasks 21–23 add the Person-A UI that makes the parallel branches, the LIVE/FALLBACK live transcript, and the human-in-the-loop approval pause visibly demonstrable. New requirements 17, 18, 19, 20 and new correctness properties 27–32 carry the traceability.
 
 Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2.2 and 2.3 are owned by Person A — so its owners are annotated on the sub-tasks rather than the parent.
 
@@ -173,7 +175,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - With mocked Grok/agent, assert sequential execution, status enum transitions, and failure halting
     - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 11. Checkpoint - Ensure core, data, agent, and workflow tests pass (Owner: Both)
+- [x] 11. Checkpoint - Ensure core, data, agent, and workflow tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 12. Build the Impeccable UI shell (Owner: Person A)
@@ -260,6 +262,64 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Assert correct behavior across all `XAI_API_KEY` / `GROK_API_KEY` presence combinations
     - _Requirements: 15.4_
 
+- [ ] 21. Build the parallel-branch WorkflowViewer (Owner: Person A)
+  - [ ] 21.1 Upgrade `WorkflowViewer` to render the event-driven graph
+    - Render concurrent fan-out branches (analyze her | analyze his; insurance call | clinic call) as PARALLEL tracks rather than a single line; render each step status as pending/running/completed/failed/paused; render the booking step as `paused` while it waits at the approval gate; keep the failed-step error indication; built via the Impeccable skill with a critique.md pass, no generic Tailwind fallback
+    - Own the `WorkflowStep[]` / branch shape and document the seam for Person B's Inngest status feed (Task 25)
+    - _Requirements: 7.2, 20.4, 20.5_
+
+  - [ ]* 21.2 Write structural render test for parallel branches and paused status
+    - Assert two concurrent branches render side-by-side and a paused step renders with the paused chip
+    - _Requirements: 20.4, 20.5_
+
+- [ ] 22. Build the live Call Console (Owner: Person A)
+  - [ ] 22.1 Build `CallConsole` (live transcript + LIVE/FALLBACK indicator + progressive result)
+    - Append each agent/human turn to a chronological live transcript as it occurs; show a LIVE indicator while the result is sourced from the Live_Voice_Session and a FALLBACK indicator when the Mock_Fallback is used (bound to `usedFallback`); progressively display each extracted result field as it resolves; consume the agent's `CallOutput` shape (transcript, result, usedFallback) from Person B; built via the Impeccable skill with a critique.md pass
+    - _Requirements: 6.10, 20.1, 20.2, 20.3_
+
+  - [ ]* 22.2 Write property test for the LIVE/FALLBACK indicator
+    - **Property 28 (UI portion): the console shows LIVE iff `usedFallback` is false and FALLBACK iff `usedFallback` is true**
+    - **Validates: Requirements 20.2**
+
+  - [ ]* 22.3 Write structural test for transcript ordering and progressive fields
+    - Assert turns render in chronological order and resolved result fields appear as provided
+    - _Requirements: 20.1, 20.3_
+
+- [ ] 23. Build the Booking Approval Card (Owner: Person A)
+  - [ ] 23.1 Build `BookingApprovalCard` and the approval emit seam
+    - While the workflow is paused at the gate, show a card stating the agent verified coverage and found the Jun 25 slot and asking the couple to approve; on Approve, emit `couple.booking.approved` exactly once via an injectable emitter seam (default no-op/console; Person B wires it to Inngest `send`); render a "needs approval" state when the gate times out; keep the appointment shown as pending until approval; built via the Impeccable skill with a critique.md pass
+    - _Requirements: 17.2, 17.3, 17.5, 20.5_
+
+  - [ ]* 23.2 Write property test for the single-emit approval guard
+    - **Property 29 (UI portion): tapping Approve emits `couple.booking.approved` exactly once and never re-emits, so the resumed run does not double-book**
+    - **Validates: Requirements 17.3, 17.4**
+
+- [ ] 24. Implement the live Grok Voice session and transcript extraction (Owner: Person B)
+  - [ ] 24.1 Implement the live Grok Voice WebSocket session in `lib/agent/live.ts`
+    - Open the Grok Voice session over `XAI_VOICE_WS_URL` / `XAI_VOICE_MODEL`; speak questions and consume the human's spoken answers in real time; cover the 10 insurance / 7 clinic Call_Objectives adaptively (phrase its own questions from the couple's data + flags, follow up, skip answered, probe vague answers); extract the structured result from the actual live transcript in any order/wording; preserve identity-withholding and medical-decline guardrails; fall through to the deterministic Mock_Fallback ONLY on unavailability/failure/incomplete extraction; set `usedFallback` accordingly
+    - _Requirements: 6.2, 6.3, 6.4, 6.5, 6.7, 6.8, 6.9_
+
+  - [ ]* 24.2 Write property test for live transcript extraction
+    - **Property 27: Live call result is parsed from the actual human transcript (any order/wording)**
+    - **Validates: Requirements 6.4, 6.5**
+
+  - [ ]* 24.3 Write property test for fallback-only-on-failure determinism
+    - **Property 28: Mock_Fallback engages only on live failure and is deterministic (`usedFallback` accurate)**
+    - **Validates: Requirements 6.7, 15.5, 16.3**
+
+- [ ] 25. Implement the event-driven Inngest graph (Owner: Person B)
+  - [ ] 25.1 Rework `lib/inngest/` into the event-driven graph
+    - Replace the linear sequence with: parallel analyze-her | analyze-his (fan-out/fan-in) → window → missing data → duration → tasks → parallel insurance | clinic calls (fan-in) → emit `call.completed` per call → `waitForEvent("couple.booking.approved")` PAUSE (appointment pending; configured timeout → leave pending + "needs approval") → finalize booking + Jun 25 event → `step.sleep` (`CHECKIN_DELAY`) → `checkin.due` → create re-test/lifestyle task + reminder → build/refresh summary; persist per-step status incl. `paused`; finalize at most one booking (no double-book); implement the separate Reactive_Summary_Function listening on `call.completed`
+    - _Requirements: 7.1, 7.2, 7.3, 7.7, 7.8, 17.1, 17.3, 17.4, 17.5, 18.1, 18.2, 18.3, 19.1, 19.2, 19.3_
+
+  - [ ]* 25.2 Write integration test for the graph
+    - With mocked Grok/agent, assert fan-in ordering (Property 32), `paused`/resume finalizing exactly one booking (Property 29, 30), timeout leaves appointment pending (Property 30), `call.completed` emission, the reactive summary firing (Property 31), and the `step.sleep` check-in task on wake
+    - _Requirements: 7.1, 7.7, 7.8, 17.3, 17.4, 17.5, 18.3, 19.3_
+
+  - [ ] 25.3 Update config/secrets for the voice + scheduling env (Owner: Person B)
+    - Add `XAI_VOICE_WS_URL`, `XAI_VOICE_MODEL`, and `CHECKIN_DELAY` (e.g. "10s", commented as representing ~72 days) to `.env_example`; ensure the live voice path reads the WS env and the workflow reads `CHECKIN_DELAY`
+    - _Requirements: 15.2, 15.10, 18.2_
+
 - [ ] 20. Final checkpoint - Ensure all tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
@@ -282,7 +342,9 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     { "id": 3, "tasks": ["2.3", "3.2", "3.3", "3.4", "3.5", "3.6", "4.2", "4.3", "4.4", "4.5", "5.2", "5.3", "5.5", "7.2", "7.3", "8.2", "9.1", "12.2", "12.3"] },
     { "id": 4, "tasks": ["8.3", "8.4", "9.2", "9.3", "9.4", "9.5", "9.6", "10.1", "13.1", "14.1", "15.1", "16.1", "17.1", "18.1"] },
     { "id": 5, "tasks": ["10.2", "13.2", "14.2", "16.2", "18.2", "18.3", "18.4", "19.1", "19.3", "19.4"] },
-    { "id": 6, "tasks": ["19.2"] }
+    { "id": 6, "tasks": ["19.2"] },
+    { "id": 7, "tasks": ["21.1", "22.1", "23.1", "24.1", "25.1", "25.3"] },
+    { "id": 8, "tasks": ["21.2", "22.2", "22.3", "23.2", "24.2", "24.3", "25.2"] }
   ]
 }
 ```

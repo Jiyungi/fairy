@@ -10,7 +10,7 @@ This design realizes all 16 requirements with an architecture built for a one-da
 
 1. **Reference data is the source of truth** (Req 12). Every clinical value, range, code, term, and line of dialogue traces to a `/reference-data/` file. The seed couple "Maya & Daniel" (`sample-couple.md`) is the only couple in the system. We encode reference values as typed constants and seed fixtures, never as free-floating literals scattered through UI code.
 2. **Pure core, impure shell.** The fertility math, detectors, scoring, and extraction are pure functions with no I/O. They are imported identically by the Inngest workflow (server) and, where useful, by the UI. This makes the deterministic Mock_Fallback trivial and the property tests meaningful.
-3. **Determinism for the demo** (Req 15.5, 16.3). Any Grok or Grok Voice path has a deterministic Mock_Fallback returning identical schema and values for identical inputs, so the sub-three-minute demo never stalls.
+3. **Live-first, deterministic safety net** (Req 6.2, 6.7, 15.5, 16.3). The Voice_Agent holds a real spoken conversation with a live human over the Grok Voice WebSocket; results come from that real transcript. A deterministic Mock_Fallback returning identical schema and values for identical inputs engages ONLY if the live session is unavailable or fails, so the sub-three-minute demo never stalls.
 4. **Impeccable everywhere** (Req 13). All UI is produced through the Impeccable skill at `.kiro/skills/impeccable/`, presented as a 390px phone app with bottom tab navigation, app-like cards, and sticky headers. A `critique.md` pass gates every screen.
 5. **Calm, not cluttered** (Req 14). Exactly one footer disclaimer line; no synthetic-data badges or warnings in main views.
 
@@ -21,11 +21,11 @@ This design realizes all 16 requirements with an architecture built for a one-da
 | Framework | Next.js (App Router), TypeScript |
 | Styling / components | Tailwind CSS, shadcn/ui, governed by the Impeccable skill |
 | Reasoning | xAI Grok (chat/structured reasoning) |
-| Simulated calls | Grok Voice Agent API, with deterministic Mock_Fallback |
-| Orchestration | Inngest (event-driven, step-based workflow) |
+| Live calls | Grok Voice Agent API over a WebSocket (`XAI_VOICE_WS_URL`, `XAI_VOICE_MODEL`) — a real spoken conversation with a live human; deterministic Mock_Fallback as a safety net only |
+| Orchestration | Inngest (event-driven graph: fan-out/fan-in, `waitForEvent` approval gate, `step.sleep` scheduled check-in, a separate reactive function) |
 | Data | Supabase (Postgres) |
 | Deployment | Vercel; runs locally |
-| Secrets | `XAI_API_KEY` from `.env.local`, falling back to `GROK_API_KEY` |
+| Secrets | `XAI_API_KEY` from `.env.local`, falling back to `GROK_API_KEY`; `XAI_VOICE_WS_URL` / `XAI_VOICE_MODEL` for the voice path; `CHECKIN_DELAY` for the demoable scheduled check-in |
 | Excluded | Twilio, real telephony, real PHI |
 
 ## Architecture
@@ -85,46 +85,63 @@ graph TD
     Ref -.grounds.-> Agent
 ```
 
-### The Seven-Step Inngest Workflow (Req 7)
+### The Event-Driven Inngest Graph (Req 7, 17, 18, 19)
 
-The workflow is the spine of the demo. It is triggered exactly once by `fertility.intake.completed` (Req 2.6) and runs seven sequential `step.run` blocks. Each step persists a status (`pending | running | completed | failed`) the UI polls/streams so the orchestration is visible and credible.
+The workflow is the spine of the demo. It is triggered exactly once by `fertility.intake.completed` (Req 2.6) and runs as an event-driven graph rather than a single linear function: parallel fan-out/fan-in branches, a `waitForEvent` human-approval pause, a `step.sleep` scheduled check-in, and a separate reactive function. Each step persists a status (`pending | running | completed | failed | paused`) the UI polls/streams so the orchestration — including concurrency and the pause — is visible and credible.
+
+**Workflow_Events** drive the graph:
+- `fertility.intake.completed` — start (Req 2.6, 7.1)
+- `call.completed` — emitted per completed call; consumed by the reactive summary function (Req 7.7, 19)
+- `couple.booking.approved` — resumes the paused approval gate (Req 17.3)
+- `checkin.due` — the scheduled wake for the male check-in (Req 18.3)
 
 ```mermaid
-sequenceDiagram
-    participant UI as Intake UI
-    participant API as Route Handler
-    participant Ing as Inngest Workflow
-    participant Core as Rules Core
-    participant Agent as Voice Agent
-    participant DB as Supabase
-
-    UI->>API: Both intakes complete & valid
-    API->>Ing: emit fertility.intake.completed (once)
-    Ing->>Core: 1. extract profiles
-    Ing->>Core: 2. compute trying window
-    Ing->>Core: 3. detect missing data
-    Ing->>Core: 4. check trying-duration rule
-    Ing->>Core: 5. generate her/his/together tasks
-    Ing->>Agent: 6. run simulated calls (insurance + clinic)
-    Agent-->>Ing: structured results (live or Mock_Fallback)
-    Ing->>Core: 7. build doctor summary
-    Ing->>DB: persist window, flags, tasks, calendar, call_records, summary
-    Ing-->>UI: per-step status updates
+graph TD
+    Start([fertility.intake.completed]) --> AH[analyze her data]
+    Start --> AHM[analyze his data]
+    AH --> Join{fan-in}
+    AHM --> Join
+    Join --> TW[compute trying window]
+    TW --> MD[detect missing data]
+    MD --> DR[check trying-duration rule]
+    DR --> GT[generate her/his/together tasks]
+    GT --> INS[insurance call — LIVE Grok Voice ↔ human]
+    GT --> CLI[clinic call — LIVE Grok Voice ↔ human]
+    INS --> CallJoin{fan-in}
+    CLI --> CallJoin
+    INS -. emit .-> CC[call.completed]
+    CLI -. emit .-> CC
+    CC --> RS[[Reactive_Summary_Function: refresh doctor summary]]
+    CallJoin --> Gate[/waitForEvent couple.booking.approved\nPAUSED — appointment pending/]
+    Gate --> Final[finalize booking + Jun 25 calendar event]
+    Final --> Sleep[step.sleep CHECKIN_DELAY ≈72 days]
+    Sleep --> Due([checkin.due]) --> ReTest[create re-test / lifestyle-review task + reminder]
+    Final --> Summary[build/refresh doctor summary]
 ```
 
-Each step starts only after the prior step completes (Req 7.1). If a step fails, the workflow marks it `failed`, halts all later steps, and surfaces an error identifying the failed step (Req 7.3).
+**Fan-out / fan-in** (Req 7.1, 7.8). `analyze her data` and `analyze his data` run as two concurrent `step.run` blocks that both complete before `compute trying window` starts. Likewise the `insurance call` and `clinic call` run as two parallel branches that both complete before the approval gate is entered. The `WorkflowViewer` renders these as parallel tracks, not a single line.
+
+**Booking approval gate** (Req 17). After both calls complete, the workflow sets the booking step `paused` and calls `waitForEvent("couple.booking.approved", { timeout })` while the appointment stays `pending`. The app shows the `Booking_Approval_Card`; when the couple approves, the app emits `couple.booking.approved` and the **same** run resumes from the gate and finalizes the booking, the Jun 25 calendar event, and the summary — finalizing at most one booking (no double-book). If the timeout expires, the appointment stays pending and a "needs approval" state is surfaced.
+
+**Scheduled check-in** (Req 18). After finalizing, the workflow schedules a delayed check-in with `step.sleep`/`sleepUntil` over the ≈72-day sperm-regeneration horizon. The delay is read from `CHECKIN_DELAY` so it can be set to seconds on stage while the UI copy reads "~10–12 weeks." On wake (`checkin.due`) it creates a "re-test semen analysis / review lifestyle progress" task and a reminder.
+
+**Reactive summary** (Req 19). A separate Inngest function listens for `call.completed` and refreshes the `Doctor_Summary` from the latest persisted call results, decoupled from the main run.
+
+If a step fails, the workflow marks it `failed`, halts the steps that depend on it, and surfaces an error identifying the failed step (Req 7.3).
 
 ### Voice Agent Resolution Strategy (Req 6, 15.5)
 
-The agent layer exposes one interface (`runInsuranceCall`, `runClinicCall`). Internally it tries the live Grok Voice path; on unavailability or failure it falls through to the deterministic Mock_Fallback, which returns the exact scripted results from `call-scripts.md`. Because the Mock_Fallback is a pure function of (call type, authorization packet), identical inputs always yield identical schema and values (Req 6.7).
+The agent layer exposes one interface (`runInsuranceCall`, `runClinicCall`). Internally it opens a **live Grok Voice WebSocket session** (`XAI_VOICE_WS_URL` / `XAI_VOICE_MODEL`) and conducts a real spoken conversation with a **live human** — during the demo, the presenter plays the insurance rep and the clinic scheduler. There is no second Grok and no scripted bot responder. The agent is given the couple's data + missing-data flags and reasons about which `Call_Objectives` (the 10 insurance / 7 clinic items in `call-scripts.md`) to cover for this couple: it phrases its own questions, asks follow-ups based on what the human says, skips already-answered objectives, and digs deeper on vague answers. It then extracts the structured result from the **actual live transcript**, mapping it to the `call-scripts.md` schemas regardless of the order or wording of the human's answers. `insurance-coverage-data.md` and `clinic-intake-data.md` are a cue sheet for the human (deductible $1,500, in-network lab "Crest Diagnostics", Jun 25 slot, etc.), not a script for a bot.
+
+On unavailability or failure (no key, no mic, bad network, mid-call error, or incomplete extraction), the agent falls through to the deterministic **Mock_Fallback** — a safety net only. Because the Mock_Fallback is a pure function of (call type, authorization packet), identical inputs always yield identical schema and values (Req 6.7). The `Call_Console` UI shows a `LIVE` vs `FALLBACK` indicator so which path produced the result is always visible.
 
 ```mermaid
 graph LR
-    Call[runCall type, packet] --> Try{Live Grok Voice available?}
-    Try -- yes --> Live[Grok Voice call] --> Ok{Extracted result valid?}
-    Ok -- yes --> Result[Structured result + transcript]
+    Call[runCall type, packet] --> Try{Live Grok Voice WS available?}
+    Try -- yes --> Live[Live session ↔ human presenter] --> Ok{Result fully extracted from transcript?}
+    Ok -- yes --> Result[Structured result + live transcript + usedFallback=false]
     Ok -- no --> MockFB
-    Try -- no --> MockFB[Mock_Fallback deterministic]
+    Try -- no --> MockFB[Mock_Fallback deterministic, usedFallback=true]
     MockFB --> Result
 ```
 
@@ -291,7 +308,7 @@ function runInsuranceCall(packet: AuthPacket): Promise<CallOutput<InsuranceResul
 function runClinicCall(packet: AuthPacket): Promise<CallOutput<ClinicResult>>
 ```
 
-Insurance call asks the 10 questions in exact order; clinic call asks the 7 questions in exact order (Req 6.2, 6.3). The Mock_Fallback returns the verbatim mock responses and extracted results from `call-scripts.md` and is a pure function of inputs (Req 6.7). On clinic completion the agent writes back her/his/together tasks, a `2026-06-25` calendar event, and a summary of coverage facts + appointment + bring-list (Req 6.6).
+The agent opens a live Grok Voice WebSocket session and covers the 10 insurance / 7 clinic `Call_Objectives` adaptively (phrasing its own questions, following up, skipping answered items) rather than reading a fixed script (Req 6.2, 6.3). It extracts the structured result from the real human transcript in any answer order/wording (Req 6.4, 6.5). The Mock_Fallback engages only on live failure, returns the deterministic mock results from `call-scripts.md`, and is a pure function of inputs (Req 6.7); `usedFallback` records which path produced the result so the `Call_Console` can show LIVE vs FALLBACK. On clinic completion the agent writes back her/his/together tasks, a `2026-06-25` calendar event, and a summary of coverage facts + appointment + bring-list (Req 6.6).
 
 ### UI Components (`components/fairy/`) — Req 1, 13
 
@@ -299,10 +316,12 @@ All built via the Impeccable skill. `PhoneFrame` enforces the 390px mobile frame
 
 - **WorkspaceTabs**: Her / His / Together segmented control; each view loads its scoped data within the required latency budgets (Req 1.3–1.5). `MISSING` values render as missing-data flags, never blanks or substitutes (Req 1.8).
 - **IntakeForm**: structured fields only (Req 2.1), Zod-validated against reference ranges; invalid entries are rejected, prior value retained, error names the field + expected range (Req 2.8).
-- **WorkflowViewer**: seven steps with `pending/running/completed/failed` chips (Req 7.2).
+- **WorkflowViewer**: renders the event-driven graph with `pending/running/completed/failed/paused` chips, drawing concurrent fan-out branches (analyze her/his; insurance/clinic calls) as parallel tracks rather than a single line, and rendering the booking step as `paused` while it waits at the approval gate (Req 7.2, 20.4, 20.5).
+- **CallConsole**: the live call surface (Req 6.10, 20.1–20.3) — a chronological live transcript of agent/human turns appended as they occur, a `LIVE` vs `FALLBACK` indicator bound to `usedFallback`, and the structured result fields filling in progressively as the agent extracts them.
+- **BookingApprovalCard**: shown while the workflow is paused at the gate (Req 17.2, 17.3) — states that the agent verified coverage and found the Jun 25 slot, and on Approve emits `couple.booking.approved` (via an injectable emitter seam) so the same run resumes; shows a "needs approval" state on gate timeout (Req 17.5).
 - **TaskBoard**: three columns Her / His / Together (Req 5.1).
 - **CalendarView**: window, priority days, reminders, consult, tasks (Req 10).
-- **DoctorSummary**: sectioned, single copy-to-clipboard action (Req 8.2).
+- **DoctorSummary**: sectioned, single copy-to-clipboard action (Req 8.2); refreshes when the reactive summary function updates it (Req 19.3).
 - **GroundedChat**: fixed five-section answer format (Req 9.2).
 
 ### Grounded Chat (`app/api/chat/`) — Req 9
@@ -595,6 +614,42 @@ These properties target the pure rules core and grounding logic, where behavior 
 
 **Validates: Requirements 14.1, 14.2**
 
+### Property 27: Live call result is parsed from the actual human transcript
+
+*For any* live call transcript of human turns (in any order or wording that covers the objectives), the Voice_Agent's extracted structured result is derived from that transcript and conforms to the call-type schema; reordering or rewording answers that carry the same facts yields the same structured field values.
+
+**Validates: Requirements 6.4, 6.5**
+
+### Property 28: Mock_Fallback engages only on live failure and is deterministic
+
+*For any* call, the Mock_Fallback result is used if and only if the live Grok Voice session is unavailable or fails (or extraction is incomplete); when used, repeated runs with identical inputs return identical schema and identical field values, and the output's `usedFallback` flag is `true` exactly when the fallback produced the result.
+
+**Validates: Requirements 6.7, 15.5, 16.3**
+
+### Property 29: Booking approval resumes the same run without double-booking
+
+*For any* workflow run paused at the Booking_Approval_Gate, receiving a single `couple.booking.approved` event resumes that same run and finalizes exactly one booking and one Jun 25 calendar event; replaying or re-delivering the approval never produces a second booking.
+
+**Validates: Requirements 17.3, 17.4**
+
+### Property 30: Appointment stays pending until approval (or timeout)
+
+*For any* workflow state before a `couple.booking.approved` event is received, the appointment status is `pending` and the booking step is `paused`; if the gate's wait window expires first, the appointment remains `pending` and a "needs approval" state is surfaced rather than a booking.
+
+**Validates: Requirements 17.1, 17.5**
+
+### Property 31: Reactive summary fires on every call.completed
+
+*For any* sequence of completed calls, the Reactive_Summary_Function runs once per `call.completed` event and the refreshed Doctor_Summary reflects the latest persisted call results.
+
+**Validates: Requirements 7.7, 19.2, 19.3**
+
+### Property 32: Parallel branches join before the workflow proceeds
+
+*For any* run, the two analyze branches (her, his) both reach `completed` before `compute trying window` starts, and the two call branches (insurance, clinic) both reach `completed` before the Booking_Approval_Gate is entered.
+
+**Validates: Requirements 7.1, 7.8**
+
 ## Error Handling
 
 The system distinguishes recoverable input/validation errors (handled inline in the UI, prior state preserved) from workflow/agent failures (surfaced in the workflow viewer) and demo-continuity failures (handled by Mock_Fallback).
@@ -607,14 +662,16 @@ The system distinguishes recoverable input/validation errors (handled inline in 
 - **Missing/unparseable seed** (Req 1.7): the workspace loader validates the seed against its schema; on failure it renders a single "workspace cannot be loaded" error state and does not render any partial view.
 - **MISSING clinical values** (Req 1.8): represented as `null` and always rendered as a missing-data flag, never blank or substituted.
 
-### Workflow Errors (Req 7.3)
-- Each Inngest step runs in `step.run`; a thrown error marks that step `failed`, halts all subsequent steps, and surfaces an error in the WorkflowViewer naming the failed step. Earlier completed steps' persisted outputs remain.
+### Workflow Errors (Req 7.3, 17, 18, 19)
+- Each Inngest step runs in `step.run`; a thrown error marks that step `failed`, halts the steps that depend on it, and surfaces an error in the WorkflowViewer naming the failed step. Earlier completed steps' persisted outputs remain. Parallel branches are independent: a failure in one fan-out branch halts the join, not the sibling already running.
+- **Approval-gate timeout** (Req 17.5): if `waitForEvent("couple.booking.approved")` expires, the booking step leaves `paused`/`pending` and surfaces a "needs approval" state; no booking is auto-finalized. A re-delivered approval never double-books (Req 17.4).
+- **Reactive summary** (Req 19): the `call.completed` listener is a separate function; a failure there does not fail the main run, and the summary simply reflects the last successful refresh.
 
 ### Agent and Extraction Errors
 - **Unresolved fields** (Req 6.5): marked unresolved + follow-up task added; other fields preserved.
 - **Extraction failure** (Req 5.6): no tasks created; a "result extraction failed" indication is shown.
-- **Live Grok / Grok Voice unavailable or failing** (Req 6.7, 15.5, 16.3): the agent transparently falls through to the deterministic Mock_Fallback so the call still produces a valid, identical-on-repeat result.
-- **Guardrails** (Req 6.8, 6.9): identity details withheld until requested; medical-decision requests declined and converted to tasks.
+- **Live Grok Voice unavailable or failing** (Req 6.7, 15.5, 16.3): the live WebSocket session is unavailable (no key/mic/network) or fails mid-call, or the transcript cannot be fully extracted — the agent transparently falls through to the deterministic Mock_Fallback so the call still produces a valid, identical-on-repeat result, and the Call_Console flips its indicator from LIVE to FALLBACK.
+- **Guardrails** (Req 6.8, 6.9): identity details withheld until the human requests verification; medical-decision requests declined and converted to tasks.
 
 ### Calendar and Chat Errors
 - **Engine output unavailable on calendar open** (Req 10.5): show an error that window/priority dates cannot be loaded; retain any previously loaded calendar data.
@@ -636,19 +693,19 @@ PBT applies to Fairy because its core is a set of pure functions (date math, rul
 - **Generators**: ISO dates, `cycleLengthMin ≤ cycleLengthMax` pairs, lab sets with random null subsets, semen results spanning above/below each WHO limit, coverage-status enums, ages around the 35 boundary, red-flag sets, responder transcripts with verification requests at varying turns, and profile/record objects for round-trips.
 - **Tagging**: each property test references its design property using the format
   **Feature: fairy, Property {number}: {property_text}**
-- Properties 1–26 above each map to a single property-based test.
+- Properties 1–32 above each map to a single property-based test.
 
 ### Example-Based Unit Tests
 - Seed-couple worked examples: trying window Jun 27 – Jul 18, 2026; priority Jul 2 – Jul 17, 2026; confidence "Low" (Req 3.2–3.4); duration outcome 12-month threshold + early evaluation (Req 7.6).
 - Intake field presence and structured-only inputs (Req 2.1–2.5).
-- Insurance 10-question order and clinic 7-question order (Req 6.2, 6.3); clinic write-back of Jun 25 event + tasks + summary (Req 6.6).
+- Insurance 10-objective and clinic 7-objective coverage from a live transcript, in any answer order/wording (Req 6.2–6.4); clinic write-back of Jun 25 event + tasks + summary (Req 6.6).
 - Summary sections, single-operation copy, coverage `unverified`, appointment `pending` (Req 8.1, 8.2, 8.5, 8.6).
 - His-view track contents and three task columns (Req 5.1, 5.3).
 - Key resolution across all env-var combinations (Req 15.4).
 
 ### Integration Tests
-- The seven-step Inngest workflow with mocked Grok/agent: assert sequential execution, status enum transitions, and failure halting (Req 7.1–7.3).
-- End-to-end demo path with Mock_Fallback: intake → workflow → window/missing data → calls → tasks + Jun 25 consult → doctor summary (Req 16.1, 16.3). Sub-three-minute timing verified manually during rehearsal (Req 16.2).
+- The event-driven Inngest graph with mocked Grok/agent: assert the fan-out branches join before downstream steps (Req 7.1, 7.8), status enum transitions including `paused`, failure halting (Req 7.2, 7.3), `call.completed` emission per call (Req 7.7), the `waitForEvent` pause/resume finalizing exactly one booking (Req 17.3, 17.4), the timeout leaving the appointment pending (Req 17.5), the `step.sleep` check-in creating the re-test task on wake (Req 18), and the reactive summary function firing on `call.completed` (Req 19).
+- End-to-end demo path with Mock_Fallback: intake → parallel analyze → window/missing data → parallel calls (LIVE/FALLBACK) → approval gate → tasks + Jun 25 consult → doctor summary (Req 16.1, 16.3). Sub-three-minute timing verified manually during rehearsal (Req 16.2).
 
 ### Smoke / Configuration Tests
 - Migrations define all eight entities and the seed populates `couple_001` (Req 11.1, 11.2).
