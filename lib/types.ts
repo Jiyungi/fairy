@@ -15,8 +15,18 @@ export type Confidence = "Low" | "Moderate" | "High";
 export type TaskColumn = "her" | "him" | "together";
 export type FlagKind = "missing" | "borderline" | "unverified";
 export type CallType = "insurance" | "clinic";
-export type WorkflowStepStatus = "pending" | "running" | "completed" | "failed";
-export type WorkflowRunStatus = "pending" | "running" | "completed" | "failed";
+export type WorkflowStepStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "paused";
+export type WorkflowRunStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "paused";
 
 // ---------------------------------------------------------------------------
 // Inngest seven-step workflow status tracking (lib/inngest/) — Req 7.1, 7.2, 7.3
@@ -279,4 +289,64 @@ export interface CallOutput<T> {
   transcript: Turn[];
   result: T;
   usedFallback: boolean;
+  /**
+   * Partial turns as they appeared live, streamed to the Call UI (Req 6.14).
+   * OPTIONAL and additive: the deterministic Mock_Fallback may omit it.
+   */
+  transcriptStream?: Turn[];
+  /**
+   * Whether the structured result came from the real Live_Voice_Session or the
+   * deterministic Mock_Fallback (Req 6.12, 6.13). OPTIONAL/additive.
+   */
+  resultSource?: "live" | "fallback";
+  /**
+   * Schema fields that could not be extracted from the call (Req 6.8).
+   * OPTIONAL/additive — existing object literals remain valid without it.
+   */
+  unresolvedFields?: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Live agentic Voice_Agent (lib/agent/) — Req 6.1–6.14, 15.2
+// ---------------------------------------------------------------------------
+
+/**
+ * A single Call_Objective the Voice_Agent must satisfy during a Live_Voice_Session.
+ * Derived from the call-scripts.md question checklist (10 insurance / 7 clinic);
+ * the agent phrases each objective itself rather than reading a verbatim script
+ * (Req 6.2).
+ */
+export interface CallObjective {
+  /** Stable objective identifier (e.g. "deductible", "booked"). */
+  id: string;
+  /** Human-readable description of what the agent must obtain. */
+  summary: string;
+  /** The structured-result field this objective maps to, when applicable. */
+  resultField?: string;
+}
+
+/**
+ * Real-time spoken conversation client over a WebSocket (Req 6.1).
+ * Configured by `XAI_VOICE_WS_URL` / `XAI_VOICE_MODEL`. The Voice_Agent speaks
+ * its own phrasing, listens to the live human's transcribed turns, streams the
+ * partial transcript to the UI, and closes cleanly at the end of the call.
+ */
+export interface LiveVoiceSession {
+  /** Open the WebSocket session. */
+  connect(): Promise<void>;
+  /** Send a TTS prompt for the agent to speak (its own phrasing). */
+  speak(prompt: string): Promise<void>;
+  /** Register a callback invoked for each transcribed human (responder) turn. */
+  onHumanTurn(cb: (t: Turn) => void): void;
+  /** The partial transcript accumulated so far (for the live UI). */
+  partialTranscript(): Turn[];
+  /** Close the WebSocket session. */
+  close(): Promise<void>;
+}
+
+/** Names of the events the reactive Inngest graph emits / reacts to (Req 7, 17, 19). */
+export type WorkflowEventName =
+  | "fertility.intake.completed"
+  | "call.completed"
+  | "couple.booking.approved"
+  | "checkin.due";

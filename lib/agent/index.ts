@@ -51,12 +51,16 @@ export type {
   ScriptStep,
 } from "./mock-fallback";
 export {
+  createLiveVoiceSession,
   isLiveVoiceConfigured,
+  isLiveVoiceSessionConfigured,
   LiveVoiceUnavailableError,
   resolveGrokApiKey,
   tryLiveClinicCall,
   tryLiveInsuranceCall,
 } from "./live";
+export { nextQuestion, objectivesSatisfied } from "./turn-policy";
+export type { TurnContext } from "./turn-policy";
 
 // ---------------------------------------------------------------------------
 // Public call interface (live-first, Mock_Fallback on failure) — Req 6.7
