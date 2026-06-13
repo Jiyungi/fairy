@@ -16,8 +16,8 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
 
 ## Tasks
 
-- [ ] 1. Set up project structure and tooling (Owner: Person A)
-  - [ ] 1.1 Initialize the Next.js app and toolchain
+- [x] 1. Set up project structure and tooling (Owner: Person A)
+  - [x] 1.1 Initialize the Next.js app and toolchain
     - Scaffold Next.js (App Router) + TypeScript project with the `app/`, `lib/`, `components/`, and `supabase/` directory layout from the design
     - Add Tailwind CSS and shadcn/ui, the Inngest client dependency, and the Supabase client dependency
     - Configure Vitest and `fast-check` for property-based testing (min 100 generated cases per property)
