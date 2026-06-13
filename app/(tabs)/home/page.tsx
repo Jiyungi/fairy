@@ -2,21 +2,19 @@ import { AlertTriangle } from "lucide-react";
 
 import { EmptyState } from "@/components/fairy/EmptyState";
 import { WorkspaceTabs } from "@/components/fairy/WorkspaceTabs";
-import {
-  WorkflowViewer,
-  defaultWorkflowGraph,
-} from "@/components/fairy/WorkflowViewer";
+import { ProgressJourney } from "@/components/fairy/ProgressJourney";
 import { BookingApprovalCard } from "@/components/fairy/BookingApprovalCard";
 import { buildSeedCouple } from "@/lib/db/seed";
 import type { CoupleWorkspace } from "@/lib/db/types";
 
 /**
- * Home — the Couple Workspace (Her / His / Together views) plus the event-driven
- * workflow viewer and the human-in-the-loop booking approval card (Req 1, 7.2,
- * 17, 20). Data comes from the seeded couple via the pure `buildSeedCouple`
- * builder so the screen renders standalone; the live per-step workflow status,
- * the live Call_Console, and the real `couple.booking.approved` emit are wired
- * by Person B (Tasks 24, 25) — here they render their standalone snapshot.
+ * Home — the couple's workspace from the signed-in partner's perspective plus a
+ * plain-language progress strip and the human-in-the-loop booking approval card
+ * (Req 1, 17, 20). The technical Inngest graph is abstracted away: couples see a
+ * swipeable ProgressJourney, not workflow internals. Data comes from the seeded
+ * couple via the pure `buildSeedCouple` builder so the screen renders
+ * standalone; the live status and the real `couple.booking.approved` emit are
+ * wired by Person B (Tasks 24, 25).
  *
  * If the seed cannot be built the workspace refuses to render partially and
  * shows a load-error indication instead (Req 1.7).
@@ -38,9 +36,8 @@ export default function HomePage() {
   return (
     <div className="space-y-5">
       <WorkspaceTabs workspace={workspace} />
-      {/* Event-driven graph: parallel fan-out branches + the paused approval
-          gate. SEAM: Person B feeds live per-step status by id (Task 25). */}
-      <WorkflowViewer graph={defaultWorkflowGraph()} />
+      {/* Plain-language progress — the workflow internals are abstracted away. */}
+      <ProgressJourney />
       {/* Human-in-the-loop pause made actionable. SEAM: Person B passes an
           emitter that calls inngest.send("couple.booking.approved") (Task 25). */}
       <BookingApprovalCard coupleId={workspace.couple.id} />

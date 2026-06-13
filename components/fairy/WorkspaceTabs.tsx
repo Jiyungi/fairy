@@ -14,6 +14,7 @@ import type {
 } from "@/lib/db/types";
 import { Card, CardHeader, Field, FieldGroup } from "./Card";
 import { Chip, MissingFlag } from "./MissingFlag";
+import { usePerspective } from "./PerspectiveProvider";
 
 /*
   WorkspaceTabs — the Couple Workspace (Req 1). A Her / His / Together
@@ -498,23 +499,47 @@ function TaskCard({ column, tasks }: { column: Task["column"]; tasks: Task[] }) 
 
 export function WorkspaceTabs({
   workspace,
-  initialView = "her",
+  initialView,
 }: {
   workspace: CoupleWorkspace;
   initialView?: WorkspaceView;
 }) {
-  const [view, setView] = React.useState<WorkspaceView>(initialView);
+  const { perspective } = usePerspective();
   const her = memberByRole(workspace.members, "her");
   const him = memberByRole(workspace.members, "him");
 
+  // Restrict the views to the signed-in partner's own view + the shared
+  // Together view — never the other partner's private view (Req 1.2). With no
+  // perspective (e.g. standalone render) all three remain available.
+  const allowed: WorkspaceView[] = React.useMemo(() => {
+    if (perspective === "her") return ["her", "together"];
+    if (perspective === "him") return ["his", "together"];
+    return ["her", "his", "together"];
+  }, [perspective]);
+
+  const visibleViews = VIEWS.filter((v) => allowed.includes(v.id));
+  const defaultView = initialView && allowed.includes(initialView)
+    ? initialView
+    : (perspective === "him" ? "his" : perspective === "her" ? "her" : allowed[0]);
+
+  const [view, setView] = React.useState<WorkspaceView>(defaultView);
+
+  // Keep the active view valid if the allowed set changes (e.g. the partner
+  // switches). Never leave a partner viewing a tab they can't access.
+  React.useEffect(() => {
+    if (!allowed.includes(view)) setView(defaultView);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowed]);
+
   return (
-    <section aria-label="Couple workspace">
+    <section aria-label="Your workspace">
       <div
         role="tablist"
         aria-label="Workspace views"
-        className="grid grid-cols-3 gap-1 rounded-full bg-secondary p-1"
+        className="grid gap-1 rounded-full bg-secondary p-1"
+        style={{ gridTemplateColumns: `repeat(${visibleViews.length}, minmax(0, 1fr))` }}
       >
-        {VIEWS.map((v) => {
+        {visibleViews.map((v) => {
           const active = view === v.id;
           return (
             <button

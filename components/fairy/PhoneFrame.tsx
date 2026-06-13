@@ -18,17 +18,18 @@ interface PhoneFrameProps {
  */
 export function PhoneFrame({ children, className }: PhoneFrameProps) {
   return (
-    <div className="flex min-h-dvh w-full justify-center bg-secondary/40 sm:py-6">
+    <div className="flex h-dvh w-full items-center justify-center overflow-hidden bg-secondary/40 sm:py-6">
       <div
         data-testid="phone-frame"
         style={{ width: PHONE_WIDTH, maxWidth: "100%" }}
         className={cn(
-          // Fixed height (not min-height) so the content region scrolls
-          // internally while the header and bottom tabs stay pinned — like a
-          // real app. `overflow-hidden` clips to the frame; children own scroll.
+          // The whole app fits the viewport — never the page scrolls. The frame
+          // is a fixed-height column; only the inner content region scrolls, so
+          // the header and bottom tabs stay pinned like a real app.
           "relative flex h-dvh w-full flex-col overflow-hidden bg-background",
-          // Device chrome + a fixed device height only when there's room to float the frame.
-          "sm:h-[844px] sm:rounded-[2.5rem] sm:border sm:border-border sm:shadow-card",
+          // On a larger screen the frame floats as a centered device, capped to
+          // the viewport height so it always fits with no page scroll.
+          "sm:h-[844px] sm:max-h-[calc(100dvh-3rem)] sm:rounded-[2.5rem] sm:border sm:border-border sm:shadow-card",
           className,
         )}
       >

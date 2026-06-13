@@ -233,7 +233,7 @@ export function CallConsole({
           <ol
             data-testid="call-transcript"
             aria-live="polite"
-            className="flex max-h-72 flex-col gap-3 overflow-y-auto pr-1"
+            className="no-scrollbar flex max-h-72 flex-col gap-3 overflow-y-auto pr-1"
           >
             {transcript.map((turn, index) => (
               <TranscriptTurn key={index} turn={turn} index={index} />

@@ -143,3 +143,17 @@
     opacity: 1;
   }
 }
+
+@layer utilities {
+  /* Hide scrollbars while preserving scrolling. Fairy reads as a native app:
+     content regions still scroll, but no scrollbar chrome is ever shown. */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE/old Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* WebKit/Blink */
+    width: 0;
+    height: 0;
+  }
+}
