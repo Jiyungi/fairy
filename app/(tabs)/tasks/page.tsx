@@ -1,15 +1,23 @@
-import { ListChecks } from "lucide-react";
+import { buildSeedCouple } from "@/lib/db/seed";
+import { TaskBoard } from "@/components/fairy/TaskBoard";
 
-import { EmptyState } from "@/components/fairy/EmptyState";
-
-// Placeholder for Task 15 (Task delegation board). Shell chrome is provided
-// by the (tabs) layout.
+/**
+ * Task delegation board (Task 15 / Req 5). Shell chrome (sticky header, tabs,
+ * disclaimer) is provided by the (tabs) layout.
+ *
+ * Tasks come from the data model. On this branch the agent that extracts call
+ * results into tasks (Person B) is not wired in, so the seed workspace starts
+ * with no tasks (`tasks: []`) and each column shows its calm empty state. The
+ * board itself fully supports populated tasks and the His-track readiness
+ * update; `readinessScore` seeds the His meter from the male partner's profile.
+ */
 export default function TasksPage() {
+  const workspace = buildSeedCouple();
+
   return (
-    <EmptyState
-      icon={ListChecks}
-      title="No tasks yet"
-      description="Follow-ups from your insurance and clinic calls will be split across Her, His, and Together here."
+    <TaskBoard
+      tasks={workspace.tasks}
+      readinessScore={workspace.himProfile.readiness_score ?? 0}
     />
   );
 }

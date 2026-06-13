@@ -106,7 +106,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - **Property 9: Readiness score stays an integer within [0, 100]**
     - **Validates: Requirements 1.4, 5.4**
 
-- [ ] 6. Checkpoint - Ensure all rules-core tests pass (Owner: Both)
+- [x] 6. Checkpoint - Ensure all rules-core tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Implement structured-result extractors (Owner: Person B)
@@ -189,40 +189,40 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Assert the 390px frame and the four bottom tabs render
     - _Requirements: 13.4_
 
-- [ ] 13. Implement the dual intake forms (Owner: Person A)
-  - [ ] 13.1 Build the Her/His/Together intake forms
+- [x] 13. Implement the dual intake forms (Owner: Person A)
+  - [x] 13.1 Build the Her/His/Together intake forms
     - Render structured fields only, wired to the validation schemas; reject invalid entries inline (retain prior value, name field + range); on both intakes complete and valid, emit `fertility.intake.completed` exactly once
     - _Requirements: 2.1, 2.6, 2.8_
 
-  - [ ]* 13.2 Write property test for the completion event
+  - [x]* 13.2 Write property test for the completion event
     - **Property 12: Intake completion event fires exactly once**
     - **Validates: Requirements 2.6**
 
-- [ ] 14. Implement the Couple Workspace views (Owner: Person A)
-  - [ ] 14.1 Build Her/His/Together views and the workflow viewer
+- [x] 14. Implement the Couple Workspace views (Owner: Person A)
+  - [x] 14.1 Build Her/His/Together views and the workflow viewer
     - Render the three scoped views (profiles, labs, semen results vs WHO limits, Readiness_Score 0–100, shared insurance/goal/concern/tasks) and the seven-step `WorkflowViewer`; render MISSING values as missing-data flags
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.8, 5.3, 7.2_
 
-  - [ ]* 14.2 Write property test for MISSING rendering
+  - [x]* 14.2 Write property test for MISSING rendering
     - **Property 24: MISSING values render as flags**
     - **Validates: Requirements 1.8**
 
-- [ ] 15. Implement the Task delegation board (Owner: Person A)
-  - [ ] 15.1 Build the TaskBoard
+- [x] 15. Implement the Task delegation board (Owner: Person A)
+  - [x] 15.1 Build the TaskBoard
     - Render exactly three columns (Her/His/Together); create follow-up tasks from extracted call results into a single column each; on extraction failure create no tasks and show a failure indication; on male-track task completion update the Readiness_Score within [0, 100]
     - _Requirements: 5.1, 5.2, 5.4, 5.5, 5.6_
 
-- [ ] 16. Implement the Shared Calendar (Owner: Person A)
-  - [ ] 16.1 Build the CalendarView
+- [x] 16. Implement the Shared Calendar (Owner: Person A)
+  - [x] 16.1 Build the CalendarView
     - Display the trying window, priority days, reminders, the Jun 25, 2026 consult, and tasks; show event detail on selection; use the Trying_Window_Engine output as the single source of truth and update when it changes; on unavailable engine output show an error and retain previously loaded data
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-  - [ ]* 16.2 Write property test for calendar/engine date equality
+  - [x]* 16.2 Write property test for calendar/engine date equality
     - **Property 25: Calendar dates equal engine output**
     - **Validates: Requirements 10.3, 10.4**
 
-- [ ] 17. Implement the Doctor-ready Summary (Owner: Person A)
-  - [ ] 17.1 Build the summary endpoint and UI
+- [x] 17. Implement the Doctor-ready Summary (Owner: Person A)
+  - [x] 17.1 Build the summary endpoint and UI
     - Assemble both partners' data, trying window + confidence, missing tests, doctor questions, verified coverage facts, and the Jun 25 consult; single-operation copy to clipboard; ground all clinical statements in Reference_Data and omit absent values; label coverage `unverified` and appointment `pending` when applicable
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
