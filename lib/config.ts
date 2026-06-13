@@ -104,7 +104,7 @@ export interface AgentPhoneConfig {
 
 /** AgentPhone REST base URL. */
 export function resolveAgentPhoneBaseUrl(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): string {
   return (env.AGENTPHONE_BASE_URL?.trim() || "https://api.agentphone.ai/v1").replace(
     /\/$/,
@@ -113,7 +113,7 @@ export function resolveAgentPhoneBaseUrl(
 }
 
 export function resolveAgentPhoneConfig(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): AgentPhoneConfig | null {
   const apiKey = env.AGENTPHONE_API_KEY?.trim();
   const agentId = env.AGENTPHONE_AGENT_ID?.trim();
@@ -131,7 +131,7 @@ export function resolveAgentPhoneConfig(
 
 /** True when USE_AGENTPHONE is enabled and required env vars are set. */
 export function isAgentPhoneEnabled(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): boolean {
   if (!parseBooleanEnv(env.USE_AGENTPHONE)) return false;
   return resolveAgentPhoneConfig(env) !== null;

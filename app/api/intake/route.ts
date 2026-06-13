@@ -39,7 +39,7 @@ interface IntakeRequestBody {
 }
 
 /** Inline demo path: run the full chain now and return its artifacts (Req 16.1). */
-export async function runWorkflowNow(
+async function runWorkflowNow(
   coupleId: string = DEMO_COUPLE_ID,
 ): Promise<DemoPathResult> {
   return runDemoPath(coupleId);

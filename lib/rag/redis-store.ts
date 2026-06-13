@@ -57,7 +57,9 @@ export async function ensureRedisVectorIndex(
   indexName = resolveRedisVectorIndex(),
 ): Promise<void> {
   try {
-    await redis.ft.create(
+    await (redis.ft.create as unknown as (
+      ...args: unknown[]
+    ) => Promise<unknown>)(
       indexName,
       {
         source_file: { type: "TAG" as const },

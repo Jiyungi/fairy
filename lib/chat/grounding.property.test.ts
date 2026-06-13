@@ -232,21 +232,19 @@ const UNAVAILABLE_PHRASE_RE =
 
 // MISSING female labs for the seed couple, straight from the detector.
 const SEED_MISSING_LABELS = detectMissingData({
-  labs: {
-    day3_fsh: her.day3_fsh,
-    day3_estradiol: her.day3_estradiol,
-    mid_luteal_progesterone: her.mid_luteal_progesterone,
-    prolactin: her.prolactin,
-  },
+  day3_fsh: her.day3_fsh,
+  day3_estradiol: her.day3_estradiol,
+  mid_luteal_progesterone: her.mid_luteal_progesterone,
+  prolactin: her.prolactin,
   semen: {
-    volume_ml: him.volume_ml,
-    concentration_million_ml: him.concentration_million_ml,
-    total_count_million: him.total_count_million,
-    progressive_motility_pct: him.progressive_motility_pct,
-    total_motility_pct: him.total_motility_pct,
-    morphology_normal_pct: him.morphology_normal_pct,
-    vitality_pct: him.vitality_pct,
-    ph: him.ph,
+    semenVolumeMl: him.volume_ml,
+    concentrationMillionMl: him.concentration_million_ml,
+    totalSpermMillion: him.total_count_million,
+    totalMotilityPct: him.total_motility_pct,
+    progressiveMotilityPct: him.progressive_motility_pct,
+    vitalityPct: him.vitality_pct,
+    normalMorphologyPct: him.morphology_normal_pct,
+    phMin: him.ph,
   },
   coverage_status: SEED_COUPLE_FIXTURE.couple.coverage_status,
 })
