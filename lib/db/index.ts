@@ -12,6 +12,7 @@ import type {
   Member,
   Task,
   TryingWindow,
+  WorkflowRun,
 } from "@/lib/types";
 
 export interface SeedCouple {
@@ -118,6 +119,7 @@ const tasks = new Map<string, Task[]>();
 const calendarEvents = new Map<string, CalendarEvent[]>();
 const callRecords = new Map<string, CallRecord[]>();
 const summaries = new Map<string, Summary>();
+const workflowRuns = new Map<string, WorkflowRun>();
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -161,4 +163,18 @@ export async function saveCallRecord(record: CallRecord): Promise<CallRecord> {
 export async function saveSummary(summary: Summary): Promise<Summary> {
   summaries.set(summary.couple_id, clone(summary));
   return clone(summary);
+}
+
+// --- Workflow-run status tracking (Inngest seven-step workflow) -------------
+// Persists the ordered per-step statuses the WorkflowViewer polls/streams
+// (Req 7.2). The whole run is written on every step transition.
+
+export async function saveWorkflowRun(run: WorkflowRun): Promise<WorkflowRun> {
+  workflowRuns.set(run.couple_id, clone(run));
+  return clone(run);
+}
+
+export async function getWorkflowRun(coupleId: string): Promise<WorkflowRun | null> {
+  const found = workflowRuns.get(coupleId);
+  return found ? clone(found) : null;
 }

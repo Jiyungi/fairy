@@ -16,6 +16,34 @@ export type TaskColumn = "her" | "him" | "together";
 export type FlagKind = "missing" | "borderline" | "unverified";
 export type CallType = "insurance" | "clinic";
 export type WorkflowStepStatus = "pending" | "running" | "completed" | "failed";
+export type WorkflowRunStatus = "pending" | "running" | "completed" | "failed";
+
+// ---------------------------------------------------------------------------
+// Inngest seven-step workflow status tracking (lib/inngest/) — Req 7.1, 7.2, 7.3
+// A `workflow_run` record persists an ordered array of per-step states the UI
+// can poll/stream. `null` is never used here — every step always has a status.
+// ---------------------------------------------------------------------------
+
+export interface WorkflowStepState {
+  /** 1-based step number (1..7) in the documented order. */
+  step: number;
+  /** Human-readable step name shown in the WorkflowViewer. */
+  name: string;
+  /** Current lifecycle status of this step (Req 7.2). */
+  status: WorkflowStepStatus;
+  /** Error message when the step failed (Req 7.3); absent otherwise. */
+  error?: string;
+}
+
+export interface WorkflowRun {
+  couple_id: string;
+  /** Ordered states for the seven steps (Req 7.1). */
+  steps: WorkflowStepState[];
+  /** Overall run status (failed once any step fails). */
+  status: WorkflowRunStatus;
+  /** The 1-based number of the failed step, when the run failed (Req 7.3). */
+  failedStep?: number;
+}
 
 // ---------------------------------------------------------------------------
 // Data model entities (Supabase schema — design.md Data Models)

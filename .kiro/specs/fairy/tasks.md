@@ -144,28 +144,28 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Implement `runInsuranceCall` / `runClinicCall` that load the authorization packet, ask the 10/7 questions in exact order, produce a chronological transcript + extracted result, decline medical-decision requests, withhold member ID/DOB until verification is requested, and fall through to the deterministic Mock_Fallback on live failure; on clinic completion write back her/his/together tasks, a 2026-06-25 calendar event, and a coverage+appointment+bring-list summary
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6, 6.7, 6.8, 6.9, 15.5_
 
-  - [-]* 9.2 Write property test for call-output schema
+  - [x]* 9.2 Write property test for call-output schema
     - **Property 15: Call output conforms to its schema**
     - **Validates: Requirements 6.4**
 
-  - [-]* 9.3 Write property test for Mock_Fallback determinism
+  - [x]* 9.3 Write property test for Mock_Fallback determinism
     - **Property 17: Mock_Fallback is deterministic**
     - **Validates: Requirements 6.7, 15.5, 16.3**
 
-  - [-]* 9.4 Write property test for identity withholding
+  - [x]* 9.4 Write property test for identity withholding
     - **Property 18: Identity details withheld until verification requested**
     - **Validates: Requirements 6.8**
 
-  - [-]* 9.5 Write property test for medical-decision declines
+  - [x]* 9.5 Write property test for medical-decision declines
     - **Property 19: Medical-decision requests are declined**
     - **Validates: Requirements 6.9**
 
-  - [-]* 9.6 Write unit test for question order and clinic write-back
+  - [x]* 9.6 Write unit test for question order and clinic write-back
     - Assert insurance 10-question order, clinic 7-question order, and the Jun 25 event + tasks + summary write-back
     - _Requirements: 6.2, 6.3, 6.6_
 
 - [ ] 10. Implement the Inngest seven-step workflow (Owner: Person B)
-  - [ ] 10.1 Implement `lib/inngest/` client and the 7-step function
+  - [-] 10.1 Implement `lib/inngest/` client and the 7-step function
     - Implement the function triggered by `fertility.intake.completed`: extract profiles → compute window → detect missing data → check duration rule → generate tasks → run simulated calls → build summary; persist a `pending|running|completed|failed` status per step; on failure mark the step failed, halt later steps, and surface the failed step
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
