@@ -35,24 +35,52 @@ export type WorkflowRunStatus =
 // ---------------------------------------------------------------------------
 
 export interface WorkflowStepState {
-  /** 1-based step number (1..7) in the documented order. */
+  /** 1-based step number in the documented graph order. */
   step: number;
   /** Human-readable step name shown in the WorkflowViewer. */
   name: string;
-  /** Current lifecycle status of this step (Req 7.2). */
+  /** Current lifecycle status of this step (Req 7.5). */
   status: WorkflowStepStatus;
-  /** Error message when the step failed (Req 7.3); absent otherwise. */
+  /** Error message when the step failed (Req 7.6); absent otherwise. */
   error?: string;
+  /**
+   * Marks steps that belong to a concurrent fan-out/fan-in branch-pair so the
+   * Workflow_Viewer can render them side-by-side as simultaneous lanes (Req 7.4).
+   * The `analyze-her`/`analyze-his` pair and the `insurance-call`/`clinic-call`
+   * pair each share a `branchGroup`. Sequential steps omit it.
+   */
+  branchGroup?: string;
 }
+
+/** Approval_Gate lifecycle for the persisted run (Req 17). */
+export type ApprovalState = "awaiting" | "approved" | "expired";
 
 export interface WorkflowRun {
   couple_id: string;
-  /** Ordered states for the seven steps (Req 7.1). */
+  /** Ordered states for the reactive-graph steps (Req 7.1, 7.5). */
   steps: WorkflowStepState[];
-  /** Overall run status (failed once any step fails). */
+  /** Overall run status (failed once any step fails; paused at the gate). */
   status: WorkflowRunStatus;
-  /** The 1-based number of the failed step, when the run failed (Req 7.3). */
+  /** The 1-based number of the failed step, when the run failed (Req 7.6). */
   failedStep?: number;
+  /** Approval_Gate state: awaiting → approved | expired (Req 17.3, 17.5). */
+  approvalState?: ApprovalState;
+}
+
+/**
+ * Scheduled male-track Check_In (Req 18). Created when the booking is finalized;
+ * fires the His re-test task + reminder when the configured delay elapses.
+ */
+export interface CheckIn {
+  id: string;
+  couple_id: string;
+  /** The CHECKIN_DELAY token used for the sleep (e.g. "10s"). */
+  delay_token: string;
+  /** UI copy for the ~72-day / ~10–12 week sperm-regeneration horizon. */
+  horizon_label: string;
+  /** Id of the His re-test task created when the check-in fired. */
+  task_id: string;
+  status: "scheduled" | "due";
 }
 
 // ---------------------------------------------------------------------------

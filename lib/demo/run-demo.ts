@@ -1,16 +1,21 @@
 // ===========================================================================
 // End-to-end demo path orchestration (lib/demo/run-demo.ts) — Req 16.1, 16.3
 //
-// `runDemoPath` runs the FULL Fairy chain for the seed couple end to end and
-// returns the artifacts the demo (and Task 19.2's integration test) assert on:
+// `runDemoPath` runs the FULL Fairy reactive graph for the seed couple end to
+// end and returns the artifacts the demo (and Task 19.2's integration test)
+// assert on:
 //
-//   intake  →  seven-step workflow  →  trying window + missing-data flags
-//           →  her/his/together tasks  →  simulated insurance + clinic calls
-//           →  June 25 consult calendar event  →  doctor summary
+//   intake  →  reactive graph (analyze-her | analyze-his fan-out/join)
+//           →  trying window + missing-data flags  →  duration rule
+//           →  her/his/together tasks  →  insurance | clinic calls (fan-out/join)
+//           →  Approval_Gate (auto-approved on the demo path)
+//           →  June 25 consult calendar event  →  scheduled Check_In
+//           →  doctor summary
 //
 // It is a thin, awaitable wrapper over `runFairyWorkflow` (lib/inngest/workflow),
 // which already:
-//   - runs the seven steps strictly in order (Req 7.1),
+//   - runs the reactive graph with the two concurrent branch-pairs (Req 7.2, 7.3),
+//   - auto-approves the Approval_Gate by default so the demo completes (Req 17.3),
 //   - persists the trying window, tasks, calendar event, call records, and
 //     summary through the data layer, and
 //   - resolves the simulated calls live-first and TRANSPARENTLY falls through to
@@ -36,7 +41,7 @@ export const DEMO_COUPLE_ID = "couple_001" as const;
 
 /** Artifacts produced by the end-to-end demo path. */
 export interface DemoPathResult {
-  /** The completed seven-step workflow run (per-step statuses, Req 7.2). */
+  /** The completed reactive-graph run (per-step statuses, Req 7.5). */
   run: WorkflowRun;
   /** Trying window: Jun 27–Jul 18 / priority Jul 2–Jul 17 / Low (Req 3.2–3.4). */
   window: TryingWindowOutput;
