@@ -157,6 +157,11 @@ export function simulateConversation(
 // Insurance Mock_Fallback — Req 6.2
 // ---------------------------------------------------------------------------
 
+/** Scripted responder turns for a call type (shared by Mock_Fallback and Grok Voice). */
+export function callScriptSteps(callType: "insurance" | "clinic"): ScriptStep[] {
+  return callType === "insurance" ? insuranceScript() : clinicScript();
+}
+
 /** Build the deterministic insurance-call script (verify → 10 Qs → decline). */
 function insuranceScript(): ScriptStep[] {
   const steps: ScriptStep[] = [
