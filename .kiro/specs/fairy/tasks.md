@@ -164,12 +164,12 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Assert insurance 10-question order, clinic 7-question order, and the Jun 25 event + tasks + summary write-back
     - _Requirements: 6.2, 6.3, 6.6_
 
-- [ ] 10. Implement the Inngest seven-step workflow (Owner: Person B)
-  - [-] 10.1 Implement `lib/inngest/` client and the 7-step function
+- [x] 10. Implement the Inngest seven-step workflow (Owner: Person B)
+  - [x] 10.1 Implement `lib/inngest/` client and the 7-step function
     - Implement the function triggered by `fertility.intake.completed`: extract profiles → compute window → detect missing data → check duration rule → generate tasks → run simulated calls → build summary; persist a `pending|running|completed|failed` status per step; on failure mark the step failed, halt later steps, and surface the failed step
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-  - [ ]* 10.2 Write integration test for workflow orchestration
+  - [-]* 10.2 Write integration test for workflow orchestration
     - With mocked Grok/agent, assert sequential execution, status enum transitions, and failure halting
     - _Requirements: 7.1, 7.2, 7.3_
 
