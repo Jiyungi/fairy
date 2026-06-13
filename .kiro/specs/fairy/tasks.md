@@ -109,16 +109,16 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
 - [ ] 6. Checkpoint - Ensure all rules-core tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement structured-result extractors (Owner: Person B)
-  - [-] 7.1 Implement `lib/core/extract.ts`
+- [x] 7. Implement structured-result extractors (Owner: Person B)
+  - [x] 7.1 Implement `lib/core/extract.ts`
     - Implement insurance and clinic extractors mapping a transcript/mock responses to the exact `call-scripts.md` schemas; assign each created task to exactly one Her/His/Together column; mark unextractable fields unresolved + add a follow-up task while preserving extracted fields
     - _Requirements: 6.2, 6.3, 6.5, 5.2, 5.5_
 
-  - [ ]* 7.2 Write property test for task column assignment
+  - [-]* 7.2 Write property test for task column assignment
     - **Property 10: Every task is assigned to exactly one column**
     - **Validates: Requirements 5.2, 5.5**
 
-  - [ ]* 7.3 Write property test for unresolved-field isolation
+  - [-]* 7.3 Write property test for unresolved-field isolation
     - **Property 16: Unresolved fields are isolated**
     - **Validates: Requirements 6.5**
 
