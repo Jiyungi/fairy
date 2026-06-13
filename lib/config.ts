@@ -1,21 +1,16 @@
 /**
- * Environment / secrets handling stubs.
+ * Centralized config / secret resolution (lib/config.ts) — Req 15.4, 15.5
  *
- * The Grok API key is read from `XAI_API_KEY` in `.env.local`, falling back to
- * `GROK_API_KEY` when `XAI_API_KEY` is absent (Requirement 15.4 / 15.7).
- *
- * No secret values are committed — only the variable *names* are referenced
- * here and documented in `.env_example`. Full resolution behavior (including
- * the Mock_Fallback decision) is expanded in task 19.3.
+ * Single source of truth for Grok key resolution, mock-fallback policy, and
+ * Supabase connection settings. Other modules import from here rather than
+ * re-implementing resolution logic.
  */
 
 /** Names of the environment variables that may hold the Grok API key. */
 export const GROK_API_KEY_ENV_NAMES = ["XAI_API_KEY", "GROK_API_KEY"] as const;
 
 /**
- * Resolve the Grok API key, preferring `XAI_API_KEY` and falling back to
- * `GROK_API_KEY`. Returns `null` when neither is set (callers use the
- * deterministic Mock_Fallback in that case).
+ * Resolve the Grok API key: `XAI_API_KEY` first, then `GROK_API_KEY` (Req 15.4).
  */
 export function resolveGrokApiKey(
   env: NodeJS.ProcessEnv = process.env,
@@ -29,37 +24,40 @@ export function resolveGrokApiKey(
   return null;
 }
 
-/** Whether a live Grok key is configured at all. */
+/** Whether a live Grok key is configured. */
 export function hasGrokApiKey(env: NodeJS.ProcessEnv = process.env): boolean {
   return resolveGrokApiKey(env) !== null;
 }
 
 /**
- * Supabase connection configuration (Req 11, 15.3).
- *
- * As with the Grok key, only variable *names* are referenced here — no secret
- * values are committed. Resolution is guarded so importing the DB client never
- * crashes when the environment is absent (tests / build run without a live DB);
- * callers decide what to do when configuration is missing.
+ * Whether the deterministic Mock_Fallback must be used (Req 15.5).
+ * Forced when no Grok key is set, or when `USE_MOCK_AI=true`.
  */
+export function isMockFallbackForced(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (resolveGrokApiKey(env) === null) return true;
+  return parseBooleanEnv(env.USE_MOCK_AI);
+}
+
+export interface FairyConfig {
+  grokApiKey: string | null;
+  useMockFallback: boolean;
+}
+
+export function getConfig(env: NodeJS.ProcessEnv = process.env): FairyConfig {
+  return {
+    grokApiKey: resolveGrokApiKey(env),
+    useMockFallback: isMockFallbackForced(env),
+  };
+}
+
 export interface SupabaseConfig {
   url: string;
-  /**
-   * The key the client authenticates with. Prefers the server-only service-role
-   * key (used for seeding and workflow writes) and falls back to the public
-   * anon key.
-   */
   key: string;
-  /** True when the resolved key was the service-role key. */
   usingServiceRole: boolean;
 }
 
-/**
- * Resolve the Supabase URL and key from the environment. Prefers
- * `SUPABASE_SERVICE_ROLE_KEY` (server-only) and falls back to
- * `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Returns `null` when the URL or both keys are
- * absent so the caller can run without a live database.
- */
 export function resolveSupabaseConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): SupabaseConfig | null {
@@ -79,9 +77,68 @@ export function resolveSupabaseConfig(
   return null;
 }
 
-/** Whether a usable Supabase configuration is present in the environment. */
 export function hasSupabaseConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
   return resolveSupabaseConfig(env) !== null;
+}
+
+/** xAI REST base URL for chat and embeddings. */
+export function resolveXaiApiBaseUrl(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  return (env.XAI_API_BASE_URL?.trim() || "https://api.x.ai/v1").replace(/\/$/, "");
+}
+
+export function resolveXaiModel(env: NodeJS.ProcessEnv = process.env): string {
+  return env.XAI_MODEL?.trim() || "grok-4";
+}
+
+export interface AgentPhoneConfig {
+  apiKey: string;
+  agentId: string;
+  fromNumberId: string | null;
+  toNumber: string;
+  baseUrl: string;
+}
+
+/** AgentPhone REST base URL. */
+export function resolveAgentPhoneBaseUrl(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  return (env.AGENTPHONE_BASE_URL?.trim() || "https://api.agentphone.ai/v1").replace(
+    /\/$/,
+    "",
+  );
+}
+
+export function resolveAgentPhoneConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): AgentPhoneConfig | null {
+  const apiKey = env.AGENTPHONE_API_KEY?.trim();
+  const agentId = env.AGENTPHONE_AGENT_ID?.trim();
+  const toNumber = env.AGENTPHONE_TO_NUMBER?.trim();
+  if (!apiKey || !agentId || !toNumber) return null;
+
+  return {
+    apiKey,
+    agentId,
+    fromNumberId: env.AGENTPHONE_FROM_NUMBER_ID?.trim() || null,
+    toNumber,
+    baseUrl: resolveAgentPhoneBaseUrl(env),
+  };
+}
+
+/** True when USE_AGENTPHONE is enabled and required env vars are set. */
+export function isAgentPhoneEnabled(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (!parseBooleanEnv(env.USE_AGENTPHONE)) return false;
+  return resolveAgentPhoneConfig(env) !== null;
+}
+
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
 }

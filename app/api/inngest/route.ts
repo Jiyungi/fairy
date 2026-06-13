@@ -1,15 +1,24 @@
-import { NextResponse } from "next/server";
+// ===========================================================================
+// Inngest serve endpoint (app/api/inngest/route.ts) — Req 7, 15.3
+//
+// Serves the Fairy seven-step workflow function(s) to the Inngest runtime. When
+// the Inngest dev server is running locally it discovers this endpoint and
+// triggers `fairyIntakeWorkflow` on the `fertility.intake.completed` event,
+// making the workflow run "for real" with durable, per-step status tracking.
+//
+// inngest 3.x exposes the Next.js App Router adapter at `inngest/next`, which
+// returns the GET / POST / PUT handlers this route re-exports.
+//
+// NOTE: a running Inngest dev server is OPTIONAL for the demo. The intake route
+// also exposes a direct, awaitable inline path (runWorkflowNow / ?mode=inline)
+// so the full chain executes without any Inngest server. See app/api/intake.
+// ===========================================================================
 
-// Placeholder Inngest serve endpoint. The 7-step workflow function and the
-// `serve` wiring are implemented in later tasks (10 / 19).
-export async function GET() {
-  return NextResponse.json({ status: "inngest endpoint not yet wired" });
-}
+import { serve } from "inngest/next";
 
-export async function PUT() {
-  return NextResponse.json({ status: "inngest endpoint not yet wired" });
-}
+import { functions, inngest } from "@/lib/inngest";
 
-export async function POST() {
-  return NextResponse.json({ status: "inngest endpoint not yet wired" });
-}
+export const { GET, POST, PUT } = serve({
+  client: inngest,
+  functions,
+});

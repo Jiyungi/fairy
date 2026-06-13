@@ -1,0 +1,72 @@
+import {
+  AUTHORIZATION_PACKET,
+  CLINIC_AGENT_OPENING,
+  CLINIC_CALL_OBJECTIVE,
+  CLINIC_CALL_QUESTIONS,
+  INSURANCE_AGENT_OPENING,
+  INSURANCE_CALL_OBJECTIVE,
+  INSURANCE_QUESTIONS,
+} from "@/lib/reference";
+import type { AuthPacket, CallType } from "@/lib/types";
+
+export interface AgentPhoneCallPrompt {
+  systemPrompt: string;
+  initialGreeting: string;
+}
+
+function guardrailBlock(): string {
+  return [
+    "GUARDRAILS:",
+    ...AUTHORIZATION_PACKET.guardrails.map((g) => `- ${g}`),
+    "- Use only synthetic demo data. This is a hackathon simulation.",
+    "- Ask questions in the exact order listed. One question at a time.",
+    "- Do not accept treatment or make medical decisions on the couple's behalf.",
+  ].join("\n");
+}
+
+function insurancePrompt(packet: AuthPacket): AgentPhoneCallPrompt {
+  const questions = INSURANCE_QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join("\n");
+  return {
+    initialGreeting: INSURANCE_AGENT_OPENING.replace(
+      "Pacific Crest Health PCH-0000-1234",
+      `${packet.provider}`,
+    ),
+    systemPrompt: [
+      "You are Fairy, an authorized assistant calling on behalf of a synthetic demo couple (Maya & Daniel).",
+      `Objective: ${INSURANCE_CALL_OBJECTIVE}.`,
+      `Insurance provider: ${packet.provider}, plan: ${packet.plan_type}, group: ${packet.group_number}.`,
+      "Do NOT speak member ID or DOB until the responder explicitly asks to verify identity.",
+      "",
+      "Ask these 10 questions IN ORDER (wait for a reply before the next):",
+      questions,
+      "",
+      guardrailBlock(),
+    ].join("\n"),
+  };
+}
+
+function clinicPrompt(packet: AuthPacket): AgentPhoneCallPrompt {
+  const questions = CLINIC_CALL_QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join("\n");
+  return {
+    initialGreeting: CLINIC_AGENT_OPENING,
+    systemPrompt: [
+      "You are Fairy, helping a synthetic demo couple prepare for a first fertility consult.",
+      `Objective: ${CLINIC_CALL_OBJECTIVE}.`,
+      `Insurance: ${packet.provider} ${packet.plan_type}.`,
+      "",
+      "Ask these 7 questions IN ORDER (wait for a reply before the next):",
+      questions,
+      "",
+      guardrailBlock(),
+    ].join("\n"),
+  };
+}
+
+export function buildAgentPhoneCallPrompt(
+  callType: CallType,
+  packet: AuthPacket,
+): AgentPhoneCallPrompt {
+  return callType === "insurance"
+    ? insurancePrompt(packet)
+    : clinicPrompt(packet);
+}

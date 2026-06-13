@@ -27,7 +27,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - _Requirements: 15.1, 15.2, 15.3, 15.7_
 
 - [ ] 2. Encode reference data and validation (Owner: split — see sub-tasks)
-  - [ ] 2.1 Build the reference constants layer (Owner: Person B)
+  - [x] 2.1 Build the reference constants layer (Owner: Person B)
     - Create `lib/reference/` typed constants for WHO 2021 limits, female hormone windows/targets, CPT codes, duration rule, clinic slots, and call scripts, sourced verbatim from the files in `/reference-data/`
     - Encode the Seed_Couple "Maya & Daniel" fixture and the mock insurance/clinic responses from `sample-couple.md`, `call-scripts.md`, `insurance-coverage-data.md`, and `clinic-intake-data.md`
     - _Requirements: 12.1, 12.2, 12.3, 11.3_
@@ -111,16 +111,16 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
 - [x] 6. Checkpoint - Ensure all rules-core tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement structured-result extractors (Owner: Person B)
-  - [ ] 7.1 Implement `lib/core/extract.ts`
+- [x] 7. Implement structured-result extractors (Owner: Person B)
+  - [x] 7.1 Implement `lib/core/extract.ts`
     - Implement insurance and clinic extractors mapping a transcript/mock responses to the exact `call-scripts.md` schemas; assign each created task to exactly one Her/His/Together column; mark unextractable fields unresolved + add a follow-up task while preserving extracted fields
     - _Requirements: 6.2, 6.3, 6.5, 5.2, 5.5_
 
-  - [ ]* 7.2 Write property test for task column assignment
+  - [x]* 7.2 Write property test for task column assignment
     - **Property 10: Every task is assigned to exactly one column**
     - **Validates: Requirements 5.2, 5.5**
 
-  - [ ]* 7.3 Write property test for unresolved-field isolation
+  - [x]* 7.3 Write property test for unresolved-field isolation
     - **Property 16: Unresolved fields are isolated**
     - **Validates: Requirements 6.5**
 
@@ -141,37 +141,37 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Assert migrations create all eight entities and the seed populates `couple_001`
     - _Requirements: 11.1, 11.2_
 
-- [ ] 9. Implement the Voice Agent and Mock_Fallback (Owner: Person B)
-  - [ ] 9.1 Implement `lib/agent/` adapter and Mock_Fallback
+- [x] 9. Implement the Voice Agent and Mock_Fallback (Owner: Person B)
+  - [x] 9.1 Implement `lib/agent/` adapter and Mock_Fallback
     - Implement `runInsuranceCall` / `runClinicCall` that load the authorization packet, ask the 10/7 questions in exact order, produce a chronological transcript + extracted result, decline medical-decision requests, withhold member ID/DOB until verification is requested, and fall through to the deterministic Mock_Fallback on live failure; on clinic completion write back her/his/together tasks, a 2026-06-25 calendar event, and a coverage+appointment+bring-list summary
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6, 6.7, 6.8, 6.9, 15.5_
 
-  - [ ]* 9.2 Write property test for call-output schema
+  - [x]* 9.2 Write property test for call-output schema
     - **Property 15: Call output conforms to its schema**
     - **Validates: Requirements 6.4**
 
-  - [ ]* 9.3 Write property test for Mock_Fallback determinism
+  - [x]* 9.3 Write property test for Mock_Fallback determinism
     - **Property 17: Mock_Fallback is deterministic**
     - **Validates: Requirements 6.7, 15.5, 16.3**
 
-  - [ ]* 9.4 Write property test for identity withholding
+  - [x]* 9.4 Write property test for identity withholding
     - **Property 18: Identity details withheld until verification requested**
     - **Validates: Requirements 6.8**
 
-  - [ ]* 9.5 Write property test for medical-decision declines
+  - [x]* 9.5 Write property test for medical-decision declines
     - **Property 19: Medical-decision requests are declined**
     - **Validates: Requirements 6.9**
 
-  - [ ]* 9.6 Write unit test for question order and clinic write-back
+  - [x]* 9.6 Write unit test for question order and clinic write-back
     - Assert insurance 10-question order, clinic 7-question order, and the Jun 25 event + tasks + summary write-back
     - _Requirements: 6.2, 6.3, 6.6_
 
-- [ ] 10. Implement the Inngest seven-step workflow (Owner: Person B)
-  - [ ] 10.1 Implement `lib/inngest/` client and the 7-step function
+- [x] 10. Implement the Inngest seven-step workflow (Owner: Person B)
+  - [x] 10.1 Implement `lib/inngest/` client and the 7-step function
     - Implement the function triggered by `fertility.intake.completed`: extract profiles → compute window → detect missing data → check duration rule → generate tasks → run simulated calls → build summary; persist a `pending|running|completed|failed` status per step; on failure mark the step failed, halt later steps, and surface the failed step
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-  - [ ]* 10.2 Write integration test for workflow orchestration
+  - [x]* 10.2 Write integration test for workflow orchestration
     - With mocked Grok/agent, assert sequential execution, status enum transitions, and failure halting
     - _Requirements: 7.1, 7.2, 7.3_
 
@@ -228,37 +228,37 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Assemble both partners' data, trying window + confidence, missing tests, doctor questions, verified coverage facts, and the Jun 25 consult; single-operation copy to clipboard; ground all clinical statements in Reference_Data and omit absent values; label coverage `unverified` and appointment `pending` when applicable
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 18. Implement the Grounded Chat (Owner: Person B)
-  - [ ] 18.1 Build the chat endpoint and UI
+- [x] 18. Implement the Grounded Chat (Owner: Person B)
+  - [x] 18.1 Build the chat endpoint and UI
     - Answer the five canonical questions in the fixed order (Short answer → Based on your data → What's uncertain → Shared next step → Sources), each present and non-empty; scope sources to `couple_001` / Reference_Data; state unavailable facts without substitution; provide a deterministic Mock_Fallback when Grok is unavailable
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-  - [ ]* 18.2 Write property test for summary/chat grounding
+  - [x]* 18.2 Write property test for summary/chat grounding
     - **Property 21: Summary and chat are grounded in Reference_Data**
     - **Validates: Requirements 8.3, 8.4, 9.4, 12.1, 12.3**
 
-  - [ ]* 18.3 Write property test for the five-section format
+  - [x]* 18.3 Write property test for the five-section format
     - **Property 22: Chat answers use the fixed five-section format**
     - **Validates: Requirements 9.2**
 
-  - [ ]* 18.4 Write property test for chat scoping
+  - [x]* 18.4 Write property test for chat scoping
     - **Property 23: Chat is scoped to the seed couple**
     - **Validates: Requirements 9.3**
 
-- [ ] 19. Integration, wiring, and configuration (Owner: Person B)
-  - [ ] 19.1 Wire the end-to-end demo path
+- [x] 19. Integration, wiring, and configuration (Owner: Person B)
+  - [x] 19.1 Wire the end-to-end demo path
     - Connect intake → workflow → window/missing-data → calls → her/his/together tasks + Jun 25 consult → doctor summary across the UI tabs so the demo runs without orphaned code; ensure live-call failure transparently uses the Mock_Fallback
     - _Requirements: 16.1, 16.3_
 
-  - [ ]* 19.2 Write integration test for the demo path
+  - [x]* 19.2 Write integration test for the demo path
     - With Mock_Fallback, assert intake → workflow → window/missing data → calls → tasks + Jun 25 consult → doctor summary completes
     - _Requirements: 16.1, 16.3_
 
-  - [ ] 19.3 Implement config/secrets and README
+  - [x] 19.3 Implement config/secrets and README
     - Implement `XAI_API_KEY` → `GROK_API_KEY` resolution falling back to Mock_Fallback when neither is set; configure Vercel deploy; write the README naming xAI, Inngest, Vercel, and Cursor and documenting HIPAA/BAA deferral; exclude Twilio/real telephony/real PHI
     - _Requirements: 15.4, 15.5, 15.6, 15.7, 15.8, 15.9_
 
-  - [ ]* 19.4 Write unit test for key resolution
+  - [x]* 19.4 Write unit test for key resolution
     - Assert correct behavior across all `XAI_API_KEY` / `GROK_API_KEY` presence combinations
     - _Requirements: 15.4_
 

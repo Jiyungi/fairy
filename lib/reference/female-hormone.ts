@@ -1,21 +1,29 @@
-/**
- * Female fertility hormone reference values.
- *
- * Source: /reference-data/female-hormone-reference.md
- *  - Day-3 FSH & Estradiol are drawn on cycle day 2–3 because levels shift
- *    across the cycle ("Day-3 FSH & Estradiol — drawn on cycle day 2–3").
- *  - Mid-luteal progesterone confirms ovulation: ~1 week after ovulation it
- *    should rise; ≈10 ng/mL suggests ovulation occurred ("Progesterone ...
- *    ≈10 ng/mL suggests ovulation occurred").
- *
- * Literals are copied verbatim from the reference file (Req 12.1).
- *
- * NOTE: This branch intentionally defines FEMALE_HORMONE in its own module
- * rather than in `lib/reference/index.ts`, which is owned separately.
- */
+// SOURCE: reference-data/female-hormone-reference.md
+
 export const FEMALE_HORMONE = {
-  /** Day-3 FSH/Estradiol draw window — cycle day 2–3. */
   day3FshDrawWindow: "cycle day 2–3",
-  /** Mid-luteal progesterone level that suggests ovulation occurred (ng/mL). */
   ovulationIndicativeProgesteroneNgMl: 10,
 } as const;
+
+export const DAY3_FSH_MIU_ML = {
+  favorableMax: 10,
+  borderlineMin: 10,
+  borderlineMax: 15,
+  reducedReserveAbove: 15,
+} as const;
+
+export const DAY3_ESTRADIOL_PG_ML = {
+  typicalMin: 25,
+  typicalMax: 75,
+} as const;
+
+export const AMH_NG_ML = {
+  highAbove: 3.0,
+  normalMin: 1.0,
+  normalMax: 3.0,
+  lowNormalMin: 0.5,
+  lowNormalMax: 1.0,
+  lowReserveBelow: 0.5,
+} as const;
+
+export type FemaleHormone = typeof FEMALE_HORMONE;
