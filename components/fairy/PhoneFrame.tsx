@@ -23,9 +23,12 @@ export function PhoneFrame({ children, className }: PhoneFrameProps) {
         data-testid="phone-frame"
         style={{ width: PHONE_WIDTH, maxWidth: "100%" }}
         className={cn(
-          "relative flex min-h-dvh w-full flex-col overflow-hidden bg-background",
-          // Device chrome only when there's room to float the frame.
-          "sm:min-h-[844px] sm:rounded-[2.5rem] sm:border sm:border-border sm:shadow-card",
+          // Fixed height (not min-height) so the content region scrolls
+          // internally while the header and bottom tabs stay pinned — like a
+          // real app. `overflow-hidden` clips to the frame; children own scroll.
+          "relative flex h-dvh w-full flex-col overflow-hidden bg-background",
+          // Device chrome + a fixed device height only when there's room to float the frame.
+          "sm:h-[844px] sm:rounded-[2.5rem] sm:border sm:border-border sm:shadow-card",
           className,
         )}
       >

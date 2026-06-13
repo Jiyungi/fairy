@@ -51,7 +51,7 @@ export default function SummaryPage() {
           </Link>
         }
       />
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <main className="fairy-rise flex-1 px-5 py-4">{content}</main>
         <DisclaimerFooter />
       </div>
