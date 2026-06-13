@@ -226,20 +226,20 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Assemble both partners' data, trying window + confidence, missing tests, doctor questions, verified coverage facts, and the Jun 25 consult; single-operation copy to clipboard; ground all clinical statements in Reference_Data and omit absent values; label coverage `unverified` and appointment `pending` when applicable
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 18. Implement the Grounded Chat (Owner: Person B)
-  - [-] 18.1 Build the chat endpoint and UI
+- [x] 18. Implement the Grounded Chat (Owner: Person B)
+  - [x] 18.1 Build the chat endpoint and UI
     - Answer the five canonical questions in the fixed order (Short answer → Based on your data → What's uncertain → Shared next step → Sources), each present and non-empty; scope sources to `couple_001` / Reference_Data; state unavailable facts without substitution; provide a deterministic Mock_Fallback when Grok is unavailable
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-  - [ ]* 18.2 Write property test for summary/chat grounding
+  - [x]* 18.2 Write property test for summary/chat grounding
     - **Property 21: Summary and chat are grounded in Reference_Data**
     - **Validates: Requirements 8.3, 8.4, 9.4, 12.1, 12.3**
 
-  - [ ]* 18.3 Write property test for the five-section format
+  - [x]* 18.3 Write property test for the five-section format
     - **Property 22: Chat answers use the fixed five-section format**
     - **Validates: Requirements 9.2**
 
-  - [ ]* 18.4 Write property test for chat scoping
+  - [x]* 18.4 Write property test for chat scoping
     - **Property 23: Chat is scoped to the seed couple**
     - **Validates: Requirements 9.3**
 
