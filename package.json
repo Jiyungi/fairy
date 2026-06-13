@@ -10,7 +10,12 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed:knowledge": "tsx scripts/seed-knowledge.ts"
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:setup": "npm run db:migrate && npm run seed:knowledge",
+    "seed:knowledge": "tsx scripts/seed-knowledge.ts",
+    "seed:redis": "tsx scripts/seed-redis.ts",
+    "rag:setup": "npm run seed:redis",
+    "preview:agentphone-prompt": "tsx scripts/preview-agentphone-prompt.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.108.1",
@@ -21,6 +26,7 @@
     "next": "15.5.19",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "redis": "4.7.0",
     "tailwind-merge": "2.6.0",
     "tailwindcss-animate": "1.0.7",
     "zod": "3.24.1"
@@ -30,6 +36,7 @@
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
     "@types/node": "22.10.5",
+    "@types/pg": "8.11.10",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
     "@vitejs/plugin-react": "4.3.4",
@@ -39,6 +46,7 @@
     "fast-check": "3.23.2",
     "jsdom": "25.0.1",
     "postcss": "8.5.15",
+    "pg": "8.13.1",
     "tailwindcss": "3.4.17",
     "tsx": "4.19.2",
     "typescript": "5.9.3",

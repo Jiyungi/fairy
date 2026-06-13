@@ -126,7 +126,7 @@ async function createOutboundCall(
   callType: CallType,
   packet: AuthPacket,
 ): Promise<string> {
-  const { systemPrompt, initialGreeting } = buildAgentPhoneCallPrompt(callType, packet);
+  const { systemPrompt, initialGreeting } = await buildAgentPhoneCallPrompt(callType, packet);
 
   const body: Record<string, string> = {
     agentId: config.agentId,

@@ -7,11 +7,15 @@ import {
   INSURANCE_CALL_OBJECTIVE,
   INSURANCE_QUESTIONS,
 } from "@/lib/reference";
+import { buildAgentKnowledgeContext } from "@/lib/rag/retrieve-for-agent";
 import type { AuthPacket, CallType } from "@/lib/types";
 
 export interface AgentPhoneCallPrompt {
   systemPrompt: string;
   initialGreeting: string;
+  /** Where RAG chunks were loaded from (redis vector / keyword fallback). */
+  ragMode?: "vector" | "keyword";
+  ragChunkCount?: number;
 }
 
 function guardrailBlock(): string {
@@ -24,7 +28,7 @@ function guardrailBlock(): string {
   ].join("\n");
 }
 
-function insurancePrompt(packet: AuthPacket): AgentPhoneCallPrompt {
+function baseInsurancePrompt(packet: AuthPacket): Omit<AgentPhoneCallPrompt, "ragMode" | "ragChunkCount"> {
   const questions = INSURANCE_QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join("\n");
   return {
     initialGreeting: INSURANCE_AGENT_OPENING.replace(
@@ -45,7 +49,7 @@ function insurancePrompt(packet: AuthPacket): AgentPhoneCallPrompt {
   };
 }
 
-function clinicPrompt(packet: AuthPacket): AgentPhoneCallPrompt {
+function baseClinicPrompt(packet: AuthPacket): Omit<AgentPhoneCallPrompt, "ragMode" | "ragChunkCount"> {
   const questions = CLINIC_CALL_QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join("\n");
   return {
     initialGreeting: CLINIC_AGENT_OPENING,
@@ -62,11 +66,21 @@ function clinicPrompt(packet: AuthPacket): AgentPhoneCallPrompt {
   };
 }
 
-export function buildAgentPhoneCallPrompt(
+/**
+ * Build AgentPhone system prompt with Redis-backed RAG knowledge injected.
+ * The knowledge base grounds answers when speaking to insurers, clinics, or receptionists.
+ */
+export async function buildAgentPhoneCallPrompt(
   callType: CallType,
   packet: AuthPacket,
-): AgentPhoneCallPrompt {
-  return callType === "insurance"
-    ? insurancePrompt(packet)
-    : clinicPrompt(packet);
+): Promise<AgentPhoneCallPrompt> {
+  const base = callType === "insurance" ? baseInsurancePrompt(packet) : baseClinicPrompt(packet);
+  const { context, mode, chunkCount } = await buildAgentKnowledgeContext(callType);
+
+  return {
+    ...base,
+    systemPrompt: [base.systemPrompt, "", context].join("\n"),
+    ragMode: mode,
+    ragChunkCount: chunkCount,
+  };
 }

@@ -5,25 +5,47 @@ import { buildAgentPhoneCallPrompt } from "@/lib/agent/prompts";
 import { SEED_AUTH_PACKET } from "@/lib/reference";
 import { INSURANCE_QUESTIONS, CLINIC_CALL_QUESTIONS } from "@/lib/reference/call-scripts";
 import { isAgentPhoneEnabled, resolveAgentPhoneConfig } from "@/lib/config";
+import { retrieveAgentKnowledge } from "@/lib/rag/retrieve-for-agent";
 
 describe("AgentPhone prompts", () => {
-  it("includes all 10 insurance questions in order", () => {
-    const { systemPrompt } = buildAgentPhoneCallPrompt("insurance", SEED_AUTH_PACKET);
+  it("includes all 10 insurance questions in order", async () => {
+    const { systemPrompt } = await buildAgentPhoneCallPrompt("insurance", SEED_AUTH_PACKET);
     for (const q of INSURANCE_QUESTIONS) {
       expect(systemPrompt).toContain(q);
     }
   });
 
-  it("includes all 7 clinic questions in order", () => {
-    const { systemPrompt } = buildAgentPhoneCallPrompt("clinic", SEED_AUTH_PACKET);
+  it("includes all 7 clinic questions in order", async () => {
+    const { systemPrompt } = await buildAgentPhoneCallPrompt("clinic", SEED_AUTH_PACKET);
     for (const q of CLINIC_CALL_QUESTIONS) {
       expect(systemPrompt).toContain(q);
     }
   });
 
-  it("does not put member ID in the insurance opening greeting", () => {
-    const { initialGreeting } = buildAgentPhoneCallPrompt("insurance", SEED_AUTH_PACKET);
+  it("does not put member ID in the insurance opening greeting", async () => {
+    const { initialGreeting } = await buildAgentPhoneCallPrompt("insurance", SEED_AUTH_PACKET);
     expect(initialGreeting).not.toContain(SEED_AUTH_PACKET.member_id);
+  });
+
+  it("injects KNOWLEDGE BASE block from RAG", async () => {
+    const { systemPrompt, ragChunkCount } = await buildAgentPhoneCallPrompt(
+      "insurance",
+      SEED_AUTH_PACKET,
+    );
+    expect(systemPrompt).toContain("KNOWLEDGE BASE");
+    expect(ragChunkCount).toBeGreaterThan(0);
+  });
+});
+
+describe("AgentPhone RAG retrieval", () => {
+  it("retrieves insurance-related chunks without Supabase", async () => {
+    const { chunks, mode } = await retrieveAgentKnowledge("insurance");
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(["vector", "keyword"]).toContain(mode);
+    const topics = new Set(chunks.map((c) => c.topic));
+    expect(
+      topics.has("insurance") || topics.has("calls") || topics.has("cpt"),
+    ).toBe(true);
   });
 });
 

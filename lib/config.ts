@@ -137,6 +137,21 @@ export function isAgentPhoneEnabled(
   return resolveAgentPhoneConfig(env) !== null;
 }
 
+/** Redis URL for AgentPhone RAG hot path. */
+export function resolveRedisUrl(env: NodeJS.ProcessEnv = process.env): string | null {
+  const url = env.REDIS_URL?.trim();
+  return url || null;
+}
+
+/** RediSearch index name for knowledge chunks. */
+export function resolveRedisVectorIndex(env: NodeJS.ProcessEnv = process.env): string {
+  return env.REDIS_VECTOR_INDEX?.trim() || "fairy-rag";
+}
+
+export function hasRedisConfig(env: NodeJS.ProcessEnv = process.env): boolean {
+  return resolveRedisUrl(env) !== null;
+}
+
 function parseBooleanEnv(value: string | undefined): boolean {
   if (typeof value !== "string") return false;
   const normalized = value.trim().toLowerCase();
