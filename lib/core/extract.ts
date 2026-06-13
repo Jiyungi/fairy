@@ -70,15 +70,20 @@ function firstTurn(transcript: Turn[], keywords: string[]): Turn | undefined {
 }
 
 /**
- * Resolve a coverage yes/no from the first turn mentioning a subject.
- * Returns undefined when no turn addresses the subject (=> unresolved).
+ * Resolve a coverage yes/no for a subject. Scans ALL turns mentioning the
+ * subject (in transcript order) and returns the first DECISIVE verdict, so the
+ * result is order-independent: an unrelated turn that merely contains the
+ * keyword (e.g. "In-network lab: Crest Diagnostics" matching "diagnostic") but
+ * carries no covered/not-covered verdict is skipped rather than latched onto.
+ * Returns undefined when no turn addresses the subject with a verdict
+ * (=> unresolved). [Fix for Property 16: live answers arrive in any order.]
  */
 function parseCovered(transcript: Turn[], keywords: string[]): boolean | undefined {
-  const turn = firstTurn(transcript, keywords);
-  if (!turn) return undefined;
-  const text = lc(turn.text);
-  if (text.includes("not covered") || text.includes("no coverage")) return false;
-  if (text.includes("covered") || text.includes("coverage")) return true;
+  for (const turn of turnsMatching(transcript, keywords)) {
+    const text = lc(turn.text);
+    if (text.includes("not covered") || text.includes("no coverage")) return false;
+    if (text.includes("covered") || text.includes("coverage")) return true;
+  }
   return undefined;
 }
 
@@ -150,16 +155,20 @@ const INSURANCE_FIELD_LABELS: Record<string, string> = {
   referral_required: "referral requirement",
 };
 
-/** Extract the procedures requiring prior auth (uppercase acronyms after "for"). */
+/** Extract the procedures requiring prior auth (uppercase acronyms after "for").
+ *  Scans ALL prior-auth turns and returns the first DECISIVE one, so it is
+ *  order-independent: a turn that merely mentions "prior auth" without naming
+ *  procedures after "for" (e.g. "IUI/IVF: covered with prior auth") is skipped
+ *  in favor of the turn that lists them (Property 16). */
 function parsePriorAuthFor(transcript: Turn[]): string[] | undefined {
-  const turn = firstTurn(transcript, ["prior auth", "prior authorization"]);
-  if (!turn) return undefined;
-  const text = lc(turn.text);
-  if (text.includes("not required") || text.includes("no prior auth")) return [];
-  // Pull the acronyms named after "for" (e.g. "required for IUI and IVF").
-  const after = turn.text.split(/for/i).slice(1).join(" ");
-  const matches = after.match(/\b[A-Z]{2,}\b/g);
-  if (matches && matches.length > 0) return Array.from(new Set(matches));
+  for (const turn of turnsMatching(transcript, ["prior auth", "prior authorization"])) {
+    const text = lc(turn.text);
+    if (text.includes("not required") || text.includes("no prior auth")) return [];
+    // Pull the acronyms named after "for" (e.g. "required for IUI and IVF").
+    const after = turn.text.split(/for/i).slice(1).join(" ");
+    const matches = after.match(/\b[A-Z]{2,}\b/g);
+    if (matches && matches.length > 0) return Array.from(new Set(matches));
+  }
   return undefined;
 }
 
