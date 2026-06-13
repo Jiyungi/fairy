@@ -30,12 +30,12 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Encode the Seed_Couple "Maya & Daniel" fixture and the mock insurance/clinic responses from `sample-couple.md`, `call-scripts.md`, `insurance-coverage-data.md`, and `clinic-intake-data.md`
     - _Requirements: 12.1, 12.2, 12.3, 11.3_
 
-  - [ ] 2.2 Implement intake validation schemas (Owner: Person A)
+  - [x] 2.2 Implement intake validation schemas (Owner: Person A)
     - Create `lib/validation/` Zod schemas for Her, His, and Together fields with field names and bounds identical to `sample-couple.md`
     - Enforce enumerations (`semen_analysis_status`, `policy_holder`, `coverage_known`) and WHO 2021 / reference-range bounds; reject out-of-range values with errors naming the field and expected range
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.7, 2.8_
 
-  - [ ]* 2.3 Write property test for intake validation (Owner: Person A)
+  - [x]* 2.3 Write property test for intake validation (Owner: Person A)
     - **Property 11: Intake validation rejects out-of-range values**
     - **Validates: Requirements 2.7, 2.8**
 
