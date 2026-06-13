@@ -209,6 +209,7 @@ export function mockInsuranceCall(packet: AuthPacket): CallOutput<InsuranceResul
     transcript,
     result: structuredClone(INSURANCE_RESULT),
     usedFallback: true,
+    resultSource: "fallback",
   };
 }
 
@@ -284,5 +285,6 @@ export function mockClinicCall(packet: AuthPacket): CallOutput<ClinicResult> {
     transcript,
     result: structuredClone(CLINIC_RESULT),
     usedFallback: true,
+    resultSource: "fallback",
   };
 }

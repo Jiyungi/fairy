@@ -6,10 +6,10 @@
 // With NO XAI_API_KEY / GROK_API_KEY configured, the live Grok Voice path is
 // unavailable, so the simulated insurance + clinic calls TRANSPARENTLY fall
 // through to the deterministic Mock_Fallback (Req 16.3). `runDemoPath` drives
-// the same testable pipeline the Inngest function wraps and returns the full
-// set of demo artifacts, which this test asserts complete + correct:
+// the same reactive-graph pipeline the Inngest function wraps and returns the
+// full set of demo artifacts, which this test asserts complete + correct:
 //
-//   1. run completed, all seven steps completed.
+//   1. run completed, all reactive-graph steps completed (auto-approved gate).
 //   2. trying window: Jun 27 – Jul 18 2026, priority Jul 2 – Jul 17, Low.
 //   3. flags: missing labs + borderline semen + unverified insurance.
 //   4. tasks: non-empty, cover her/him/together, each with exactly one column.
@@ -51,7 +51,7 @@ describe("demo path end-to-end (Req 16.1, 16.3)", () => {
   it("completes intake → workflow → window/missing-data → calls → tasks + Jun 25 consult → summary", async () => {
     const result = await runDemoPath("couple_001");
 
-    // --- 1. Workflow ran end to end: completed with all seven steps completed.
+    // --- 1. Workflow ran end to end: completed with all steps completed.
     expect(result.run.status).toBe("completed");
     expect(result.run.steps).toHaveLength(WORKFLOW_STEPS.length);
     expect(result.run.steps.map((s) => s.name)).toEqual([...WORKFLOW_STEPS]);

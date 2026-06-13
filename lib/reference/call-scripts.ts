@@ -8,7 +8,7 @@
 // SINGLE SOURCE OF TRUTH — no call dialogue / mock response lives elsewhere.
 // ===========================================================================
 
-import type { InsuranceResult, ClinicResult } from "@/lib/types";
+import type { InsuranceResult, ClinicResult, CallObjective } from "@/lib/types";
 
 // --- Authorization packet (what the agent has before any call) -------------
 // reference-data/call-scripts.md — "Authorization packet"
@@ -144,3 +144,64 @@ export const CALL_WRITEBACK_STEPS = [
   "Update the doctor-ready summary with coverage facts + appointment + bring-list.",
   'Mark insurance coverage_status = "verified (partial)".',
 ] as const;
+
+// ===========================================================================
+// Call_Objectives (live agentic calls) — Req 6.2
+//
+// The INSURANCE_QUESTIONS / CLINIC_CALL_QUESTIONS lists above remain the
+// verbatim reference checklist consumed by the deterministic Mock_Fallback.
+// For the LIVE agentic path the agent treats each question as an OBJECTIVE to
+// obtain (phrasing it in its own words), NOT a verbatim script. Each objective
+// records the InsuranceResult / ClinicResult field it maps to (when a single
+// field applies), so the turn policy can skip objectives already answered and
+// the extractor can map the live transcript back onto the call-scripts.md schema.
+// ===========================================================================
+
+/** The 10 insurance Call_Objectives, derived from INSURANCE_QUESTIONS (Req 6.2, 6.4). */
+export const INSURANCE_OBJECTIVES: CallObjective[] = [
+  { id: "eligibility", summary: INSURANCE_QUESTIONS[0] },
+  {
+    id: "diagnostic_covered",
+    summary: INSURANCE_QUESTIONS[1],
+    resultField: "diagnostic_covered",
+  },
+  {
+    id: "semen_analysis_covered",
+    summary: INSURANCE_QUESTIONS[2],
+    resultField: "semen_analysis_covered",
+  },
+  {
+    id: "hormone_labs_covered",
+    summary: INSURANCE_QUESTIONS[3],
+    resultField: "hormone_labs_covered",
+  },
+  {
+    id: "prior_auth_required_for",
+    summary: INSURANCE_QUESTIONS[4],
+    resultField: "prior_auth_required_for",
+  },
+  {
+    id: "in_network_lab",
+    summary: INSURANCE_QUESTIONS[5],
+    resultField: "in_network_lab",
+  },
+  { id: "costs", summary: INSURANCE_QUESTIONS[6], resultField: "deductible" },
+  { id: "iui_ivf", summary: INSURANCE_QUESTIONS[7] },
+  { id: "meds", summary: INSURANCE_QUESTIONS[8] },
+  {
+    id: "referral_required",
+    summary: INSURANCE_QUESTIONS[9],
+    resultField: "referral_required",
+  },
+];
+
+/** The 7 clinic Call_Objectives, derived from CLINIC_CALL_QUESTIONS (Req 6.2, 6.5). */
+export const CLINIC_OBJECTIVES: CallObjective[] = [
+  { id: "new_patient_slot", summary: CLINIC_CALL_QUESTIONS[0], resultField: "booked" },
+  { id: "both_partner_eval", summary: CLINIC_CALL_QUESTIONS[1], resultField: "tasks" },
+  { id: "in_network", summary: CLINIC_CALL_QUESTIONS[2] },
+  { id: "bring_list", summary: CLINIC_CALL_QUESTIONS[3], resultField: "bring_list" },
+  { id: "cpt_codes", summary: CLINIC_CALL_QUESTIONS[4] },
+  { id: "referral", summary: CLINIC_CALL_QUESTIONS[5] },
+  { id: "telehealth", summary: CLINIC_CALL_QUESTIONS[6] },
+];

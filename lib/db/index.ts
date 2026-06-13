@@ -6,6 +6,7 @@
 import type {
   CalendarEvent,
   CallRecord,
+  CheckIn,
   Couple,
   HerProfile,
   HimProfile,
@@ -120,6 +121,7 @@ const calendarEvents = new Map<string, CalendarEvent[]>();
 const callRecords = new Map<string, CallRecord[]>();
 const summaries = new Map<string, Summary>();
 const workflowRuns = new Map<string, WorkflowRun>();
+const checkIns = new Map<string, CheckIn>();
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -206,5 +208,19 @@ export async function getCallRecords(coupleId: string): Promise<CallRecord[]> {
 
 export async function getSummary(coupleId: string): Promise<Summary | null> {
   const found = summaries.get(coupleId);
+  return found ? clone(found) : null;
+}
+
+// --- Scheduled male-track Check_In (Req 18) ---------------------------------
+// Persists the Check_In created when the booking is finalized so the His
+// re-test task + reminder can be surfaced when the delay elapses.
+
+export async function saveCheckIn(checkIn: CheckIn): Promise<CheckIn> {
+  checkIns.set(checkIn.couple_id, clone(checkIn));
+  return clone(checkIn);
+}
+
+export async function getCheckIn(coupleId: string): Promise<CheckIn | null> {
+  const found = checkIns.get(coupleId);
   return found ? clone(found) : null;
 }

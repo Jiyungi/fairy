@@ -2,19 +2,20 @@
 // Voice Agent public API (lib/agent/index.ts)
 //   — Req 6.1, 6.2, 6.3, 6.4, 6.6, 6.7, 6.8, 6.9, 15.5
 //
-// The single interface the Inngest workflow (Task 10) calls. Each call:
+// The single interface the Inngest workflow calls. Each call:
 //   1. Loads the authorization packet fields before any call (Req 6.1).
-//   2. Tries AgentPhone (USE_AGENTPHONE=true), then Grok Voice; on failure falls
-//      through to the deterministic Mock_Fallback and sets usedFallback
-//      accordingly (Req 6.7, 15.5).
+//   2. Tries the live path — AgentPhone (USE_AGENTPHONE=true), then the Grok
+//      Voice WebSocket agentic session — and on failure falls through to the
+//      deterministic Mock_Fallback, setting usedFallback accordingly (Req 6.7,
+//      15.5).
 //   3. Returns a chronological agent/responder transcript + a structured result
 //      conforming to the call-type schema (Req 6.4).
 //
-// Identity-withholding (Req 6.8), medical-decision declines (Req 6.9), the exact
-// 10/7 question order (Req 6.2, 6.3), and determinism (Req 6.7) are all enforced
-// inside the pure Mock_Fallback (./mock-fallback). The clinic write-back I/O
-// (Req 6.6) is kept OUT of the pure fallback and exposed here as
-// applyClinicWriteBack so Property 17 holds for the fallback itself.
+// Identity-withholding (Req 6.8), medical-decision declines (Req 6.9), and the
+// Call_Objectives coverage (Req 6.2, 6.3) are enforced on the live path
+// (./live) and in the deterministic Mock_Fallback (./mock-fallback). The clinic
+// write-back I/O (Req 6.6) is exposed here as applyClinicWriteBack so the pure
+// fallback stays deterministic (Property 17/20).
 // ===========================================================================
 
 import {
@@ -51,16 +52,23 @@ export type {
   ScriptStep,
 } from "./mock-fallback";
 export {
+  createLiveVoiceSession,
   isLiveVoiceConfigured,
+  isLiveVoiceSessionConfigured,
   LiveVoiceUnavailableError,
   resolveGrokApiKey,
+  runLiveVoiceSession,
   tryLiveClinicCall,
   tryLiveInsuranceCall,
 } from "./live";
+export { nextQuestion, objectivesSatisfied } from "./turn-policy";
+export type { TurnContext } from "./turn-policy";
 export {
   isAgentPhoneEnabled,
   parseAgentPhoneTranscript,
   resolveAgentPhoneConfig,
+  runAgentPhoneSession,
+  AgentPhoneUnavailableError,
 } from "./agentphone";
 export { buildAgentPhoneCallPrompt } from "./prompts";
 
@@ -69,9 +77,9 @@ export { buildAgentPhoneCallPrompt } from "./prompts";
 // ---------------------------------------------------------------------------
 
 /**
- * Run the insurance verification call. The authorization packet is loaded before
- * any call (Req 6.1). Tries the live Grok Voice path; on any failure falls
- * through to the deterministic Mock_Fallback (usedFallback = true).
+ * Run the insurance verification call. Tries the live path (AgentPhone, then
+ * Grok Voice WebSocket); on any failure falls through to the deterministic
+ * Mock_Fallback (usedFallback = true).
  */
 export async function runInsuranceCall(
   packet: AuthPacket,
@@ -84,13 +92,9 @@ export async function runInsuranceCall(
 }
 
 /**
- * Run the clinic booking call. The authorization packet is loaded before any
- * call (Req 6.1). Tries the live Grok Voice path; on any failure falls through
- * to the deterministic Mock_Fallback (usedFallback = true).
- *
- * This function is PURE with respect to data (no persistence). Use
- * applyClinicWriteBack to persist the tasks, the Jun 25 calendar event, and the
- * summary (Req 6.6).
+ * Run the clinic booking call. Tries the live path (AgentPhone, then Grok Voice
+ * WebSocket); on any failure falls through to the deterministic Mock_Fallback
+ * (usedFallback = true). Persistence is performed by applyClinicWriteBack.
  */
 export async function runClinicCall(
   packet: AuthPacket,
@@ -179,9 +183,6 @@ function buildClinicTasks(
  * Persist the clinic call's write-back (Req 6.6): the her/his/together tasks, a
  * calendar event dated 2026-06-25, and a summary containing the coverage facts,
  * the appointment, and the bring-list. Optionally records both call transcripts.
- *
- * Kept separate from the pure Mock_Fallback so determinism (Property 17) holds
- * for the fallback itself. The data layer is injectable for testing.
  */
 export async function applyClinicWriteBack(
   coupleId: string,
@@ -202,7 +203,7 @@ export async function applyClinicWriteBack(
       transcript: insuranceOutput.transcript,
       extracted_result: insuranceOutput.result,
       used_fallback: insuranceOutput.usedFallback,
-      unresolved_fields: [],
+      unresolved_fields: insuranceOutput.unresolvedFields ?? [],
     });
   }
   const clinicRecord = await db.saveCallRecord({
@@ -212,7 +213,7 @@ export async function applyClinicWriteBack(
     transcript: clinicOutput.transcript,
     extracted_result: clinicResult,
     used_fallback: clinicOutput.usedFallback,
-    unresolved_fields: [],
+    unresolved_fields: clinicOutput.unresolvedFields ?? [],
   });
   clinicCallRecordId = clinicRecord.id;
 
