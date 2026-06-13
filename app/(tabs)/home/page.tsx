@@ -4,16 +4,19 @@ import { EmptyState } from "@/components/fairy/EmptyState";
 import { WorkspaceTabs } from "@/components/fairy/WorkspaceTabs";
 import {
   WorkflowViewer,
-  defaultWorkflowSteps,
+  defaultWorkflowGraph,
 } from "@/components/fairy/WorkflowViewer";
+import { BookingApprovalCard } from "@/components/fairy/BookingApprovalCard";
 import { buildSeedCouple } from "@/lib/db/seed";
 import type { CoupleWorkspace } from "@/lib/db/types";
 
 /**
- * Home — the Couple Workspace (Her / His / Together views) plus the seven-step
- * workflow viewer (Req 1, 7.2). Data comes from the seeded couple via the pure
- * `buildSeedCouple` builder so the screen renders standalone (the DB-backed
- * load and live per-step workflow status are wired by Person B / Task 19).
+ * Home — the Couple Workspace (Her / His / Together views) plus the event-driven
+ * workflow viewer and the human-in-the-loop booking approval card (Req 1, 7.2,
+ * 17, 20). Data comes from the seeded couple via the pure `buildSeedCouple`
+ * builder so the screen renders standalone; the live per-step workflow status,
+ * the live Call_Console, and the real `couple.booking.approved` emit are wired
+ * by Person B (Tasks 24, 25) — here they render their standalone snapshot.
  *
  * If the seed cannot be built the workspace refuses to render partially and
  * shows a load-error indication instead (Req 1.7).
@@ -35,8 +38,12 @@ export default function HomePage() {
   return (
     <div className="space-y-5">
       <WorkspaceTabs workspace={workspace} />
-      {/* SEAM: pass real per-step status here once the Inngest run is wired. */}
-      <WorkflowViewer steps={defaultWorkflowSteps()} />
+      {/* Event-driven graph: parallel fan-out branches + the paused approval
+          gate. SEAM: Person B feeds live per-step status by id (Task 25). */}
+      <WorkflowViewer graph={defaultWorkflowGraph()} />
+      {/* Human-in-the-loop pause made actionable. SEAM: Person B passes an
+          emitter that calls inngest.send("couple.booking.approved") (Task 25). */}
+      <BookingApprovalCard coupleId={workspace.couple.id} />
     </div>
   );
 }

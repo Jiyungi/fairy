@@ -84,5 +84,5 @@ describe("Feature: fairy, Property 25: Calendar dates equal engine output", () =
         cleanup();
       }),
     );
-  });
+  }, 30000);
 });

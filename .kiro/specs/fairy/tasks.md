@@ -262,35 +262,35 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Assert correct behavior across all `XAI_API_KEY` / `GROK_API_KEY` presence combinations
     - _Requirements: 15.4_
 
-- [ ] 21. Build the parallel-branch WorkflowViewer (Owner: Person A)
-  - [ ] 21.1 Upgrade `WorkflowViewer` to render the event-driven graph
+- [x] 21. Build the parallel-branch WorkflowViewer (Owner: Person A)
+  - [x] 21.1 Upgrade `WorkflowViewer` to render the event-driven graph
     - Render concurrent fan-out branches (analyze her | analyze his; insurance call | clinic call) as PARALLEL tracks rather than a single line; render each step status as pending/running/completed/failed/paused; render the booking step as `paused` while it waits at the approval gate; keep the failed-step error indication; built via the Impeccable skill with a critique.md pass, no generic Tailwind fallback
     - Own the `WorkflowStep[]` / branch shape and document the seam for Person B's Inngest status feed (Task 25)
     - _Requirements: 7.2, 20.4, 20.5_
 
-  - [ ]* 21.2 Write structural render test for parallel branches and paused status
+  - [x]* 21.2 Write structural render test for parallel branches and paused status
     - Assert two concurrent branches render side-by-side and a paused step renders with the paused chip
     - _Requirements: 20.4, 20.5_
 
-- [ ] 22. Build the live Call Console (Owner: Person A)
-  - [ ] 22.1 Build `CallConsole` (live transcript + LIVE/FALLBACK indicator + progressive result)
+- [x] 22. Build the live Call Console (Owner: Person A)
+  - [x] 22.1 Build `CallConsole` (live transcript + LIVE/FALLBACK indicator + progressive result)
     - Append each agent/human turn to a chronological live transcript as it occurs; show a LIVE indicator while the result is sourced from the Live_Voice_Session and a FALLBACK indicator when the Mock_Fallback is used (bound to `usedFallback`); progressively display each extracted result field as it resolves; consume the agent's `CallOutput` shape (transcript, result, usedFallback) from Person B; built via the Impeccable skill with a critique.md pass
     - _Requirements: 6.10, 20.1, 20.2, 20.3_
 
-  - [ ]* 22.2 Write property test for the LIVE/FALLBACK indicator
+  - [x]* 22.2 Write property test for the LIVE/FALLBACK indicator
     - **Property 28 (UI portion): the console shows LIVE iff `usedFallback` is false and FALLBACK iff `usedFallback` is true**
     - **Validates: Requirements 20.2**
 
-  - [ ]* 22.3 Write structural test for transcript ordering and progressive fields
+  - [x]* 22.3 Write structural test for transcript ordering and progressive fields
     - Assert turns render in chronological order and resolved result fields appear as provided
     - _Requirements: 20.1, 20.3_
 
-- [ ] 23. Build the Booking Approval Card (Owner: Person A)
-  - [ ] 23.1 Build `BookingApprovalCard` and the approval emit seam
+- [x] 23. Build the Booking Approval Card (Owner: Person A)
+  - [x] 23.1 Build `BookingApprovalCard` and the approval emit seam
     - While the workflow is paused at the gate, show a card stating the agent verified coverage and found the Jun 25 slot and asking the couple to approve; on Approve, emit `couple.booking.approved` exactly once via an injectable emitter seam (default no-op/console; Person B wires it to Inngest `send`); render a "needs approval" state when the gate times out; keep the appointment shown as pending until approval; built via the Impeccable skill with a critique.md pass
     - _Requirements: 17.2, 17.3, 17.5, 20.5_
 
-  - [ ]* 23.2 Write property test for the single-emit approval guard
+  - [x]* 23.2 Write property test for the single-emit approval guard
     - **Property 29 (UI portion): tapping Approve emits `couple.booking.approved` exactly once and never re-emits, so the resumed run does not double-book**
     - **Validates: Requirements 17.3, 17.4**
 
