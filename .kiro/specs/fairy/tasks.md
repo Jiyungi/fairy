@@ -169,7 +169,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - Implement the function triggered by `fertility.intake.completed`: extract profiles → compute window → detect missing data → check duration rule → generate tasks → run simulated calls → build summary; persist a `pending|running|completed|failed` status per step; on failure mark the step failed, halt later steps, and surface the failed step
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-  - [-]* 10.2 Write integration test for workflow orchestration
+  - [x]* 10.2 Write integration test for workflow orchestration
     - With mocked Grok/agent, assert sequential execution, status enum transitions, and failure halting
     - _Requirements: 7.1, 7.2, 7.3_
 
@@ -227,7 +227,7 @@ Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
 - [ ] 18. Implement the Grounded Chat (Owner: Person B)
-  - [ ] 18.1 Build the chat endpoint and UI
+  - [-] 18.1 Build the chat endpoint and UI
     - Answer the five canonical questions in the fixed order (Short answer → Based on your data → What's uncertain → Shared next step → Sources), each present and non-empty; scope sources to `couple_001` / Reference_Data; state unavailable facts without substitution; provide a deterministic Mock_Fallback when Grok is unavailable
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
