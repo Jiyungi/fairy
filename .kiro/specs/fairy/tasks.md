@@ -4,9 +4,19 @@
 
 This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind + shadcn/ui (governed by the Impeccable skill), Inngest, Supabase, and the Grok / Grok Voice adapter with a deterministic Mock_Fallback. It follows the design's "pure core, impure shell" structure: the deterministic rules core (trying-window, missing-data, duration, readiness, extractors) is built and property-tested first, then the data layer, agent, workflow, and UI are layered on and wired into the sub-three-minute demo path. Property-based tests use `fast-check` + Vitest and each references a numbered design property. All clinical literals come from `/reference-data/`.
 
+## Ownership
+
+Per requirements.md and design.md, Fairy is built by two people working in parallel. Tasks are split as follows. Owner labels apply to the top-level task and all its sub-tasks (including optional `*` test sub-tasks) unless a sub-task is individually labeled.
+
+- **Person A — Product & Data/UI:** Task 1 (project setup), Task 2.2 + 2.3 (validation schemas + test), Task 3 (trying-window), Task 4 (missing-data), Task 5 (duration/readiness), Task 8 (data model + seed), Task 12 (UI shell), Task 13 (intake forms), Task 14 (workspace views), Task 15 (task board), Task 16 (calendar), Task 17 (summary).
+- **Person B — Agent & Workflow:** Task 2.1 (reference constants), Task 7 (extractors), Task 9 (Voice agent + Mock_Fallback), Task 10 (Inngest workflow), Task 18 (grounded chat), Task 19 (end-to-end wiring + config/README).
+- **Both:** Checkpoints Task 6, Task 11, and Task 20.
+
+Note: Task 2 is split at the sub-task level — 2.1 is owned by Person B while 2.2 and 2.3 are owned by Person A — so its owners are annotated on the sub-tasks rather than the parent.
+
 ## Tasks
 
-- [ ] 1. Set up project structure and tooling
+- [ ] 1. Set up project structure and tooling (Owner: Person A)
   - [ ] 1.1 Initialize the Next.js app and toolchain
     - Scaffold Next.js (App Router) + TypeScript project with the `app/`, `lib/`, `components/`, and `supabase/` directory layout from the design
     - Add Tailwind CSS and shadcn/ui, the Inngest client dependency, and the Supabase client dependency
@@ -14,22 +24,22 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - Add `.env.local` handling stubs for `XAI_API_KEY` with `GROK_API_KEY` fallback (no secret values committed)
     - _Requirements: 15.1, 15.2, 15.3, 15.7_
 
-- [ ] 2. Encode reference data and validation
-  - [ ] 2.1 Build the reference constants layer
+- [ ] 2. Encode reference data and validation (Owner: split — see sub-tasks)
+  - [ ] 2.1 Build the reference constants layer (Owner: Person B)
     - Create `lib/reference/` typed constants for WHO 2021 limits, female hormone windows/targets, CPT codes, duration rule, clinic slots, and call scripts, sourced verbatim from the files in `/reference-data/`
     - Encode the Seed_Couple "Maya & Daniel" fixture and the mock insurance/clinic responses from `sample-couple.md`, `call-scripts.md`, `insurance-coverage-data.md`, and `clinic-intake-data.md`
     - _Requirements: 12.1, 12.2, 12.3, 11.3_
 
-  - [ ] 2.2 Implement intake validation schemas
+  - [ ] 2.2 Implement intake validation schemas (Owner: Person A)
     - Create `lib/validation/` Zod schemas for Her, His, and Together fields with field names and bounds identical to `sample-couple.md`
     - Enforce enumerations (`semen_analysis_status`, `policy_holder`, `coverage_known`) and WHO 2021 / reference-range bounds; reject out-of-range values with errors naming the field and expected range
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.7, 2.8_
 
-  - [ ]* 2.3 Write property test for intake validation
+  - [ ]* 2.3 Write property test for intake validation (Owner: Person A)
     - **Property 11: Intake validation rejects out-of-range values**
     - **Validates: Requirements 2.7, 2.8**
 
-- [ ] 3. Implement the Trying-Window engine
+- [ ] 3. Implement the Trying-Window engine (Owner: Person A)
   - [ ] 3.1 Implement `lib/core/trying-window.ts`
     - Implement `computeTryingWindow` using only female inputs and the irregular-cycle algorithm; compute confidence/reasons; throw a typed `TryingWindowInputError` on missing/invalid required input while preserving prior state
     - _Requirements: 3.1, 3.4, 3.5, 3.6, 3.7_
@@ -54,7 +64,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - Assert fertile window Jun 27 – Jul 18, 2026; priority Jul 2 – Jul 17, 2026; confidence "Low"
     - _Requirements: 3.2, 3.3, 3.4_
 
-- [ ] 4. Implement the Missing-Data detector
+- [ ] 4. Implement the Missing-Data detector (Owner: Person A)
   - [ ] 4.1 Implement `lib/core/missing-data.ts`
     - Apply rule-based checks for day-3 FSH, day-3 estradiol, mid-luteal progesterone, prolactin, each WHO 2021 semen parameter, and insurance coverage status; produce a consolidated checklist of flags with grounded explanations and source file
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
@@ -75,7 +85,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - **Property 8: Checklist completeness**
     - **Validates: Requirements 4.1, 4.7**
 
-- [ ] 5. Implement the Duration rule and Readiness score
+- [ ] 5. Implement the Duration rule and Readiness score (Owner: Person A)
   - [ ] 5.1 Implement `lib/core/duration-rule.ts`
     - Apply the age-based threshold (under 35 → 12 months, 35+ → 6 months) and force early evaluation on any red flag
     - _Requirements: 7.4, 7.5, 7.6_
@@ -96,10 +106,10 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - **Property 9: Readiness score stays an integer within [0, 100]**
     - **Validates: Requirements 1.4, 5.4**
 
-- [ ] 6. Checkpoint - Ensure all rules-core tests pass
+- [ ] 6. Checkpoint - Ensure all rules-core tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement structured-result extractors
+- [ ] 7. Implement structured-result extractors (Owner: Person B)
   - [ ] 7.1 Implement `lib/core/extract.ts`
     - Implement insurance and clinic extractors mapping a transcript/mock responses to the exact `call-scripts.md` schemas; assign each created task to exactly one Her/His/Together column; mark unextractable fields unresolved + add a follow-up task while preserving extracted fields
     - _Requirements: 6.2, 6.3, 6.5, 5.2, 5.5_
@@ -112,7 +122,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - **Property 16: Unresolved fields are isolated**
     - **Validates: Requirements 6.5**
 
-- [ ] 8. Implement the data model and seeding
+- [ ] 8. Implement the data model and seeding (Owner: Person A)
   - [ ] 8.1 Create Supabase migrations
     - Define the eight entities (couple, member, her_profile, him_profile, trying_window, task, calendar_event, call_record) with `null` representing MISSING
     - _Requirements: 11.1_
@@ -129,7 +139,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - Assert migrations create all eight entities and the seed populates `couple_001`
     - _Requirements: 11.1, 11.2_
 
-- [ ] 9. Implement the Voice Agent and Mock_Fallback
+- [ ] 9. Implement the Voice Agent and Mock_Fallback (Owner: Person B)
   - [ ] 9.1 Implement `lib/agent/` adapter and Mock_Fallback
     - Implement `runInsuranceCall` / `runClinicCall` that load the authorization packet, ask the 10/7 questions in exact order, produce a chronological transcript + extracted result, decline medical-decision requests, withhold member ID/DOB until verification is requested, and fall through to the deterministic Mock_Fallback on live failure; on clinic completion write back her/his/together tasks, a 2026-06-25 calendar event, and a coverage+appointment+bring-list summary
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6, 6.7, 6.8, 6.9, 15.5_
@@ -154,7 +164,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - Assert insurance 10-question order, clinic 7-question order, and the Jun 25 event + tasks + summary write-back
     - _Requirements: 6.2, 6.3, 6.6_
 
-- [ ] 10. Implement the Inngest seven-step workflow
+- [ ] 10. Implement the Inngest seven-step workflow (Owner: Person B)
   - [ ] 10.1 Implement `lib/inngest/` client and the 7-step function
     - Implement the function triggered by `fertility.intake.completed`: extract profiles → compute window → detect missing data → check duration rule → generate tasks → run simulated calls → build summary; persist a `pending|running|completed|failed` status per step; on failure mark the step failed, halt later steps, and surface the failed step
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
@@ -163,10 +173,10 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - With mocked Grok/agent, assert sequential execution, status enum transitions, and failure halting
     - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 11. Checkpoint - Ensure core, data, agent, and workflow tests pass
+- [ ] 11. Checkpoint - Ensure core, data, agent, and workflow tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Build the Impeccable UI shell
+- [ ] 12. Build the Impeccable UI shell (Owner: Person A)
   - [ ] 12.1 Implement phone-frame shell components
     - Build `PhoneFrame` (390px), `BottomTabs` (Home/Calendar/Tasks/Chat), `StickyHeader`, app-like cards, and a single `DisclaimerFooter` line via the Impeccable skill; complete a critique.md pass; no generic Tailwind fallback
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 14.1, 14.2_
@@ -179,7 +189,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - Assert the 390px frame and the four bottom tabs render
     - _Requirements: 13.4_
 
-- [ ] 13. Implement the dual intake forms
+- [ ] 13. Implement the dual intake forms (Owner: Person A)
   - [ ] 13.1 Build the Her/His/Together intake forms
     - Render structured fields only, wired to the validation schemas; reject invalid entries inline (retain prior value, name field + range); on both intakes complete and valid, emit `fertility.intake.completed` exactly once
     - _Requirements: 2.1, 2.6, 2.8_
@@ -188,7 +198,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - **Property 12: Intake completion event fires exactly once**
     - **Validates: Requirements 2.6**
 
-- [ ] 14. Implement the Couple Workspace views
+- [ ] 14. Implement the Couple Workspace views (Owner: Person A)
   - [ ] 14.1 Build Her/His/Together views and the workflow viewer
     - Render the three scoped views (profiles, labs, semen results vs WHO limits, Readiness_Score 0–100, shared insurance/goal/concern/tasks) and the seven-step `WorkflowViewer`; render MISSING values as missing-data flags
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.8, 5.3, 7.2_
@@ -197,12 +207,12 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - **Property 24: MISSING values render as flags**
     - **Validates: Requirements 1.8**
 
-- [ ] 15. Implement the Task delegation board
+- [ ] 15. Implement the Task delegation board (Owner: Person A)
   - [ ] 15.1 Build the TaskBoard
     - Render exactly three columns (Her/His/Together); create follow-up tasks from extracted call results into a single column each; on extraction failure create no tasks and show a failure indication; on male-track task completion update the Readiness_Score within [0, 100]
     - _Requirements: 5.1, 5.2, 5.4, 5.5, 5.6_
 
-- [ ] 16. Implement the Shared Calendar
+- [ ] 16. Implement the Shared Calendar (Owner: Person A)
   - [ ] 16.1 Build the CalendarView
     - Display the trying window, priority days, reminders, the Jun 25, 2026 consult, and tasks; show event detail on selection; use the Trying_Window_Engine output as the single source of truth and update when it changes; on unavailable engine output show an error and retain previously loaded data
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
@@ -211,12 +221,12 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - **Property 25: Calendar dates equal engine output**
     - **Validates: Requirements 10.3, 10.4**
 
-- [ ] 17. Implement the Doctor-ready Summary
+- [ ] 17. Implement the Doctor-ready Summary (Owner: Person A)
   - [ ] 17.1 Build the summary endpoint and UI
     - Assemble both partners' data, trying window + confidence, missing tests, doctor questions, verified coverage facts, and the Jun 25 consult; single-operation copy to clipboard; ground all clinical statements in Reference_Data and omit absent values; label coverage `unverified` and appointment `pending` when applicable
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 18. Implement the Grounded Chat
+- [ ] 18. Implement the Grounded Chat (Owner: Person B)
   - [ ] 18.1 Build the chat endpoint and UI
     - Answer the five canonical questions in the fixed order (Short answer → Based on your data → What's uncertain → Shared next step → Sources), each present and non-empty; scope sources to `couple_001` / Reference_Data; state unavailable facts without substitution; provide a deterministic Mock_Fallback when Grok is unavailable
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
@@ -233,7 +243,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - **Property 23: Chat is scoped to the seed couple**
     - **Validates: Requirements 9.3**
 
-- [ ] 19. Integration, wiring, and configuration
+- [ ] 19. Integration, wiring, and configuration (Owner: Person B)
   - [ ] 19.1 Wire the end-to-end demo path
     - Connect intake → workflow → window/missing-data → calls → her/his/together tasks + Jun 25 consult → doctor summary across the UI tabs so the demo runs without orphaned code; ensure live-call failure transparently uses the Mock_Fallback
     - _Requirements: 16.1, 16.3_
@@ -250,7 +260,7 @@ This plan implements Fairy in TypeScript on Next.js (App Router) with Tailwind +
     - Assert correct behavior across all `XAI_API_KEY` / `GROK_API_KEY` presence combinations
     - _Requirements: 15.4_
 
-- [ ] 20. Final checkpoint - Ensure all tests pass
+- [ ] 20. Final checkpoint - Ensure all tests pass (Owner: Both)
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
