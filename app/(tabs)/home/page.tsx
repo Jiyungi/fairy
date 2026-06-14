@@ -4,7 +4,6 @@ import { EmptyState } from "@/components/fairy/EmptyState";
 import { WorkspaceTabs } from "@/components/fairy/WorkspaceTabs";
 import { ProgressJourney } from "@/components/fairy/ProgressJourney";
 import { BookingApprovalCard } from "@/components/fairy/BookingApprovalCard";
-import { CallMeButton } from "@/components/fairy/CallMeButton";
 import { buildSeedCouple } from "@/lib/db/seed";
 import type { CoupleWorkspace } from "@/lib/db/types";
 
@@ -37,8 +36,6 @@ export default function HomePage() {
   return (
     <div className="space-y-5">
       <WorkspaceTabs workspace={workspace} />
-      {/* Live agentic demo: place a real call where Grok is the brain. */}
-      <CallMeButton />
       {/* Plain-language progress — the workflow internals are abstracted away. */}
       <ProgressJourney />
       {/* Human-in-the-loop pause made actionable. SEAM: Person B passes an

@@ -30,6 +30,7 @@ import { getCouple } from "@/lib/db";
 import { INTAKE_COMPLETED_EVENT, inngest } from "@/lib/inngest";
 import type { WorkflowRun } from "@/lib/types";
 import { runDemoPath, DEMO_COUPLE_ID, type DemoPathResult } from "@/lib/demo/run-demo";
+import { placeAgentPhoneCall, type PlaceCallResult } from "@/lib/agent/place-call";
 
 type IntakeMode = "event" | "inline";
 
@@ -50,6 +51,7 @@ interface EventModeResponse {
   coupleId: string;
   emitted: typeof INTAKE_COMPLETED_EVENT;
   message: string;
+  call: PlaceCallResult;
 }
 
 interface InlineModeResponse {
@@ -58,6 +60,7 @@ interface InlineModeResponse {
   run: WorkflowRun;
   usedFallback: boolean;
   result: DemoPathResult;
+  call: PlaceCallResult;
 }
 
 function resolveMode(value: string | null | undefined): IntakeMode {
@@ -87,14 +90,26 @@ export async function POST(request: Request) {
     );
   }
 
+  // AGENTIC TRIGGER: completing intake places the live phone call to
+  // AGENTPHONE_TO_NUMBER (webhook mode → Grok is the brain). Fire-and-forget so
+  // a telephony hiccup never blocks the workflow; the call is configured only
+  // when the AGENTPHONE_* env vars are present (otherwise it no-ops cleanly).
+  const callPromise = placeAgentPhoneCall().catch((err) => ({
+    ok: false as const,
+    callId: null,
+    error: String(err),
+  }));
+
   if (mode === "inline") {
     const result = await runWorkflowNow(coupleId);
+    const call = await callPromise;
     const response: InlineModeResponse = {
       mode: "inline",
       coupleId,
       run: result.run,
       usedFallback: result.usedFallback,
       result,
+      call,
     };
     return NextResponse.json(response, { status: 200 });
   }
@@ -104,13 +119,16 @@ export async function POST(request: Request) {
     name: INTAKE_COMPLETED_EVENT,
     data: { coupleId },
   });
+  const call = await callPromise;
   const response: EventModeResponse = {
     mode: "event",
     coupleId,
     emitted: INTAKE_COMPLETED_EVENT,
+    call,
     message:
-      "Emitted fertility.intake.completed. With the Inngest dev server running, " +
-      "the seven-step workflow will execute; poll /api/workflow-status to watch it.",
+      "Emitted fertility.intake.completed and placed the live AgentPhone call. " +
+      "With the Inngest dev server running, the seven-step workflow will execute; " +
+      "poll /api/workflow-status to watch it.",
   };
   return NextResponse.json(response, { status: 202 });
 }
