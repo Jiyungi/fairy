@@ -138,7 +138,6 @@ export function BookingApprovalCard({
     <Card className={cn("fairy-rise", className)} aria-label="Approve your consult">
       <CardHeader
         title="Approve your consult"
-        description="Your agent did the legwork. Nothing is booked until you say so."
         action={
           approved ? (
             <Chip tone="success">Approved</Chip>
@@ -149,13 +148,6 @@ export function BookingApprovalCard({
           )
         }
       />
-
-      {/* What the agent confirmed — grounded, reassuring, not alarming. */}
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-        Fairy verified your coverage and found a first consult that fits. Review
-        the details below and approve when you&apos;re ready — we&apos;ll book it
-        and add it to your calendar.
-      </p>
 
       <div className="mt-4 rounded-xl bg-secondary/60 p-4">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
