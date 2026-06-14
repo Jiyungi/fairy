@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       ? (body.callType as CallType)
       : "insurance";
 
-    const { systemPrompt } = await buildAgentPhoneCallPrompt(callType, SEED_AUTH_PACKET);
+    const { systemPrompt, initialGreeting } = await buildAgentPhoneCallPrompt(callType, SEED_AUTH_PACKET);
     const token = await createGrokVoiceEphemeralToken({
       instructions: systemPrompt,
       voice: "eve",
@@ -36,6 +36,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       token,
       callType,
+      systemPrompt,
+      initialGreeting,
       model: process.env.XAI_VOICE_MODEL?.trim() || "grok-voice-latest",
       wsUrl: process.env.XAI_VOICE_WS_URL?.trim() || "wss://api.x.ai/v1/realtime",
     });
