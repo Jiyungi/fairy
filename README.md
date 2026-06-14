@@ -9,6 +9,8 @@ results, and turns them into calendar events and tasks. The product theme is
 
 Built in one day for a Health AI hackathon by two people working in parallel.
 
+[Demo link](https://fairy-clone.vercel.app/home)
+
 > Fairy provides educational fertility information, not medical advice.
 
 ## Sponsor tools
