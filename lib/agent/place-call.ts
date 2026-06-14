@@ -1,31 +1,41 @@
 // ===========================================================================
 // Place a live AgentPhone call (lib/agent/place-call.ts)
 //
-// Shared helper that dials AGENTPHONE_TO_NUMBER via AgentPhone in WEBHOOK mode.
-// We deliberately DO NOT send a systemPrompt — omitting it keeps the call in
-// webhook mode, so AgentPhone POSTs every turn to /api/agentphone/webhook and
-// GROK is the conversational brain.
+// Shared helper that dials an AgentPhone number in WEBHOOK mode. We deliberately
+// DO NOT send a systemPrompt — omitting it keeps the call in webhook mode, so
+// AgentPhone POSTs every turn to /api/agentphone/webhook and GROK is the brain.
 //
-// Calls ALWAYS go to AGENTPHONE_TO_NUMBER only (from resolveAgentPhoneConfig).
-// Used agentically by the intake flow (call fires when data is submitted) and
-// reachable directly via /api/agentphone/call.
+// Two-call sequence:
+//   • "insurance" leg -> dials AGENTPHONE_TO_NUMBER  (verify benefits)
+//   • "clinic"    leg -> dials AGENTPHONE_TO_NUMBER2 (book the consult)
+// The clinic leg is fired automatically by the webhook when the insurance call
+// ends. Each placed call's id is recorded so the webhook knows which leg it is.
 // ===========================================================================
 
 import { resolveAgentPhoneConfig } from "@/lib/config";
+import { setCallType } from "@/lib/db";
+import type { CallLeg } from "@/lib/agent/grok-brain";
 
-const INITIAL_GREETING =
-  "Hi, this is Fairy calling on behalf of Maya and Daniel. I'm helping them verify their fertility benefits and book a first consult. Do you have a moment?";
+const GREETINGS: Record<CallLeg, string> = {
+  insurance:
+    "Hi, this is Fairy calling on behalf of Maya and Daniel. I'm helping them verify their fertility benefits. Do you have a moment?",
+  clinic:
+    "Hi, this is Fairy calling on behalf of Maya and Daniel. I'd like to book a first fertility consult and check what records to bring. Do you have a moment?",
+};
 
 export interface PlaceCallResult {
   ok: boolean;
   callId: string | null;
+  leg?: CallLeg;
   toNumber?: string;
   error?: string;
   detail?: string;
 }
 
-/** Dial AGENTPHONE_TO_NUMBER in webhook mode (Grok is the brain). */
-export async function placeAgentPhoneCall(): Promise<PlaceCallResult> {
+/** Dial the right AgentPhone number for this leg in webhook mode (Grok is the brain). */
+export async function placeAgentPhoneCall(
+  leg: CallLeg = "insurance",
+): Promise<PlaceCallResult> {
   const config = resolveAgentPhoneConfig();
   if (!config) {
     return {
@@ -36,11 +46,16 @@ export async function placeAgentPhoneCall(): Promise<PlaceCallResult> {
     };
   }
 
+  // Insurance dials the primary line; clinic dials the second line (falls back
+  // to the primary if AGENTPHONE_TO_NUMBER2 is not set).
+  const toNumber =
+    leg === "clinic" ? config.toNumberClinic ?? config.toNumber : config.toNumber;
+
   // Webhook mode: agentId + toNumber + greeting, but NO systemPrompt.
   const body: Record<string, string> = {
     agentId: config.agentId,
-    toNumber: config.toNumber,
-    initialGreeting: INITIAL_GREETING,
+    toNumber,
+    initialGreeting: GREETINGS[leg],
   };
   if (config.fromNumberId) body.fromNumberId = config.fromNumberId;
 
@@ -55,7 +70,7 @@ export async function placeAgentPhoneCall(): Promise<PlaceCallResult> {
       body: JSON.stringify(body),
     });
   } catch (err) {
-    return { ok: false, callId: null, error: `Network error: ${String(err)}` };
+    return { ok: false, callId: null, leg, error: `Network error: ${String(err)}` };
   }
 
   const text = await res.text();
@@ -63,6 +78,7 @@ export async function placeAgentPhoneCall(): Promise<PlaceCallResult> {
     return {
       ok: false,
       callId: null,
+      leg,
       error: `AgentPhone call failed (${res.status})`,
       detail: text.slice(0, 400),
     };
@@ -81,5 +97,11 @@ export async function placeAgentPhoneCall(): Promise<PlaceCallResult> {
     (payload.callId as string) ??
     null;
 
-  return { ok: true, callId, toNumber: config.toNumber };
+  // Remember which leg this call is so the webhook uses the right Grok prompt
+  // and only chains the clinic call after the INSURANCE call ends.
+  if (callId) {
+    await setCallType(callId, leg);
+  }
+
+  return { ok: true, callId, leg, toNumber };
 }

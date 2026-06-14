@@ -35,8 +35,11 @@ export interface BrainReply {
   done: boolean;
 }
 
-/** Build the grounded system prompt for the Fairy phone agent. */
-function buildSystemPrompt(): string {
+/** Which leg of the two-call sequence this call is. */
+export type CallLeg = "insurance" | "clinic";
+
+/** Build the grounded system prompt for the Fairy phone agent for one leg. */
+function buildSystemPrompt(leg: CallLeg): string {
   const her = SEED_COUPLE_FIXTURE.herProfile;
   const him = SEED_COUPLE_FIXTURE.himProfile;
   const couple = SEED_COUPLE_FIXTURE.couple;
@@ -61,14 +64,22 @@ function buildSystemPrompt(): string {
     .map((f) => `- ${f.label}: ${f.explanation}`)
     .join("\n");
 
-  const objectives = [
-    ...INSURANCE_OBJECTIVES.map((o, i) => `${i + 1}. ${o.summary}`),
-    ...CLINIC_OBJECTIVES.map((o, i) => `${INSURANCE_OBJECTIVES.length + i + 1}. ${o.summary}`),
-  ].join("\n");
+  const isInsurance = leg === "insurance";
+  const objectives = (isInsurance ? INSURANCE_OBJECTIVES : CLINIC_OBJECTIVES)
+    .map((o, i) => `${i + 1}. ${o.summary}`)
+    .join("\n");
+
+  const role = isInsurance
+    ? "You are calling the couple's INSURANCE provider to verify their fertility benefits. Do NOT book any appointment on this call — that is a separate call to the clinic."
+    : "You are calling the FERTILITY CLINIC to book a first consult and confirm what records to bring. Insurance has already been verified on a previous call.";
+
+  const closing = isInsurance
+    ? "- When you have the coverage facts you came for, thank them, confirm the key points back, say goodbye, and end the call."
+    : "- When you have a confirmed consult (date, time, mode, clinic) and the records-to-bring list, thank them, confirm the booking back, say goodbye, and end the call.";
 
   return [
     "You are Fairy, an authorized assistant making a phone call on behalf of a couple (Maya & Daniel) who are preparing for fertility care.",
-    "You are calling a single line where the person plays BOTH the insurance representative and the clinic scheduler. Your job is to verify fertility benefits AND book a first consult.",
+    role,
     "",
     `Couple: ${couple.display_name}. Insurance: ${couple.insurance_provider} ${couple.plan_type}, policy holder ${couple.policy_holder}. Coverage status: ${couple.coverage_status}.`,
     "",
@@ -83,12 +94,15 @@ function buildSystemPrompt(): string {
     "- WITHHOLD the member ID and date of birth until the person explicitly asks to verify identity; only then share them.",
     "- NEVER make a medical decision or accept a treatment plan on the couple's behalf. If asked, politely decline and say you'll note it as a follow-up for the couple.",
     "- Only state clinical facts that come from the couple's own data; do not invent numbers, codes, or coverage terms.",
-    "- When you have covered the objectives (coverage facts + a booked consult date/time), thank them, confirm the booking back, say goodbye, and end the call.",
+    closing,
     "- When you are ending the call, end your message with the token [[END_CALL]] on its own.",
   ].join("\n");
 }
 
-const SYSTEM_PROMPT = buildSystemPrompt();
+const SYSTEM_PROMPTS: Record<CallLeg, string> = {
+  insurance: buildSystemPrompt("insurance"),
+  clinic: buildSystemPrompt("clinic"),
+};
 const END_TOKEN = "[[END_CALL]]";
 
 /**
@@ -98,6 +112,7 @@ const END_TOKEN = "[[END_CALL]]";
 export async function nextAgentLine(
   history: BrainTurn[],
   latestCallerText: string,
+  leg: CallLeg = "insurance",
 ): Promise<BrainReply> {
   const apiKey = resolveGrokApiKey();
   if (!apiKey) {
@@ -106,7 +121,7 @@ export async function nextAgentLine(
   }
 
   const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: SYSTEM_PROMPTS[leg] },
     ...history.map((t) => ({
       role: t.role === "agent" ? "assistant" : "user",
       content: t.content,

@@ -122,6 +122,9 @@ const callRecords = new Map<string, CallRecord[]>();
 const summaries = new Map<string, Summary>();
 const workflowRuns = new Map<string, WorkflowRun>();
 const checkIns = new Map<string, CheckIn>();
+// Maps an AgentPhone callId -> which leg of the two-call sequence it is, so the
+// webhook can pick the right Grok prompt and chain the clinic call after insurance.
+const callTypes = new Map<string, "insurance" | "clinic">();
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -223,4 +226,19 @@ export async function saveCheckIn(checkIn: CheckIn): Promise<CheckIn> {
 export async function getCheckIn(coupleId: string): Promise<CheckIn | null> {
   const found = checkIns.get(coupleId);
   return found ? clone(found) : null;
+}
+
+// --- Two-call sequence: remember which leg each AgentPhone call is -----------
+
+export async function setCallType(
+  callId: string,
+  type: "insurance" | "clinic",
+): Promise<void> {
+  callTypes.set(callId, type);
+}
+
+export async function getCallType(
+  callId: string,
+): Promise<"insurance" | "clinic" | null> {
+  return callTypes.get(callId) ?? null;
 }

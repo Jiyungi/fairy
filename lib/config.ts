@@ -126,6 +126,8 @@ export interface AgentPhoneConfig {
   agentId: string;
   fromNumberId: string | null;
   toNumber: string;
+  /** Second line used for the clinic call (AGENTPHONE_TO_NUMBER2). */
+  toNumberClinic: string | null;
   baseUrl: string;
 }
 
@@ -152,6 +154,7 @@ export function resolveAgentPhoneConfig(
     agentId,
     fromNumberId: env.AGENTPHONE_FROM_NUMBER_ID?.trim() || null,
     toNumber,
+    toNumberClinic: env.AGENTPHONE_TO_NUMBER2?.trim() || null,
     baseUrl: resolveAgentPhoneBaseUrl(env),
   };
 }

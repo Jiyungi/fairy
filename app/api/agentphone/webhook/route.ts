@@ -1,10 +1,13 @@
 // ===========================================================================
 // AgentPhone webhook (app/api/agentphone/webhook/route.ts)
 //
-// AgentPhone runs the call in WEBHOOK mode and POSTs here on every turn:
-//   • agent.message (voice)  -> we ask Grok for the next line and return {text}
-//   • agent.call_ended       -> we extract the structured result from the real
-//                               transcript and persist it (advances the loop)
+// AgentPhone runs each call in WEBHOOK mode and POSTs here on every turn:
+//   • agent.message (voice)  -> ask Grok for the next line (using the prompt for
+//                               THIS leg: insurance or clinic) and return {text}
+//   • agent.call_ended       -> extract the structured result for this leg from
+//                               the real transcript, persist it, and — if the
+//                               INSURANCE call just ended — automatically place
+//                               the CLINIC call to AGENTPHONE_TO_NUMBER2.
 //
 // Grok is the agentic brain (lib/agent/grok-brain). HMAC-verified per AgentPhone
 // docs (signed string = `${timestamp}.${rawBody}`, header X-Webhook-Signature).
@@ -12,9 +15,15 @@
 
 import crypto from "node:crypto";
 
-import { nextAgentLine, type BrainTurn } from "@/lib/agent/grok-brain";
+import { nextAgentLine, type BrainTurn, type CallLeg } from "@/lib/agent/grok-brain";
+import { placeAgentPhoneCall } from "@/lib/agent/place-call";
 import { extractClinicResult, extractInsuranceResult } from "@/lib/core/extract";
-import { saveCallRecord, saveCalendarEvent, saveTasks } from "@/lib/db";
+import {
+  getCallType,
+  saveCallRecord,
+  saveCalendarEvent,
+  saveTasks,
+} from "@/lib/db";
 import type { ClinicResult, InsuranceResult, Turn } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -79,12 +88,24 @@ export async function POST(request: Request) {
     return new Response("OK", { status: 200 });
   }
 
-  // --- A voice call ended: extract from the REAL transcript + persist --------
+  const callId = body.data?.callId ?? "live";
+  // Which leg is this call? Defaults to insurance if we lost the mapping.
+  const leg: CallLeg = (await getCallType(callId)) ?? "insurance";
+
+  // --- A voice call ended: extract for THIS leg + persist; chain clinic call --
   if (body.event === "agent.call_ended") {
     try {
-      await persistCallResult(body.data?.transcript ?? [], body.data?.callId ?? "live");
+      await persistCallResult(body.data?.transcript ?? [], callId, leg);
     } catch {
       // best-effort; never block the ack
+    }
+    // After the INSURANCE call ends, automatically place the CLINIC call.
+    if (leg === "insurance") {
+      try {
+        await placeAgentPhoneCall("clinic");
+      } catch {
+        // best-effort
+      }
     }
     return new Response("OK", { status: 200 });
   }
@@ -103,7 +124,7 @@ export async function POST(request: Request) {
 
   let reply;
   try {
-    reply = await nextAgentLine(history, callerText);
+    reply = await nextAgentLine(history, callerText, leg);
   } catch {
     reply = { text: "Sorry, could you repeat that?", done: false };
   }
@@ -114,10 +135,12 @@ export async function POST(request: Request) {
   );
 }
 
-/** Map the AgentPhone end-of-call transcript to Turn[] and persist results. */
+/** Map the AgentPhone end-of-call transcript to Turn[] and persist the result
+ *  for this leg (insurance OR clinic). */
 async function persistCallResult(
   transcript: { role?: string; content?: string }[],
   callId: string,
+  leg: CallLeg,
 ): Promise<void> {
   const turns: Turn[] = transcript
     .filter((t) => typeof t.content === "string" && t.content.trim())
@@ -126,23 +149,32 @@ async function persistCallResult(
       text: (t.content ?? "").trim(),
     }));
 
-  const insurance = extractInsuranceResult(turns);
-  const clinic = extractClinicResult(turns);
+  if (leg === "insurance") {
+    const insurance = extractInsuranceResult(turns);
+    await saveCallRecord({
+      id: `call_${DEMO_COUPLE_ID}_${callId}`,
+      couple_id: DEMO_COUPLE_ID,
+      call_type: "insurance",
+      transcript: turns,
+      extracted_result: insurance.result as InsuranceResult,
+      used_fallback: false,
+      unresolved_fields: insurance.unresolved,
+    });
+    return;
+  }
 
-  // Always record the real call (transcript + whatever was extracted).
+  // Clinic leg: extract the booking, write the consult event + prep tasks.
+  const clinic = extractClinicResult(turns);
   await saveCallRecord({
     id: `call_${DEMO_COUPLE_ID}_${callId}`,
     couple_id: DEMO_COUPLE_ID,
-    call_type: clinic.result.booked ? "clinic" : "insurance",
+    call_type: "clinic",
     transcript: turns,
-    extracted_result: (clinic.result.booked
-      ? (clinic.result as ClinicResult)
-      : (insurance.result as InsuranceResult)),
+    extracted_result: clinic.result as ClinicResult,
     used_fallback: false,
-    unresolved_fields: [...insurance.unresolved, ...clinic.unresolved],
+    unresolved_fields: clinic.unresolved,
   });
 
-  // If the live call produced a booking, write the consult + prep tasks.
   if (clinic.result.booked && clinic.result.calendar_event && clinic.result.tasks) {
     const booked = clinic.result.booked;
     await saveCalendarEvent({
