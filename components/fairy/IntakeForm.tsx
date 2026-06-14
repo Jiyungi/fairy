@@ -12,7 +12,6 @@ import {
 } from "@/lib/validation/intake";
 import {
   IntakeCompletionGuard,
-  defaultIntakeCompletedEmitter,
   type IntakeCompletedEmitter,
   type IntakePart,
 } from "@/lib/intake/completion";
@@ -54,6 +53,24 @@ const SECTION_META: Record<SectionKey, SectionMeta> = {
 
 const ORDER: readonly SectionKey[] = ["her", "his", "together"];
 
+/**
+ * Real completion emitter: POST /api/intake. This both emits the Inngest
+ * `fertility.intake.completed` event AND fires the agentic AgentPhone call to
+ * the insurance/clinic line (webhook mode → Grok is the brain). Completing the
+ * couple's data is what decides to make the call — no manual button.
+ */
+const postIntakeCompleted: IntakeCompletedEmitter = async () => {
+  try {
+    await fetch("/api/intake", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "inline" }),
+    });
+  } catch {
+    // Non-blocking: the UI still shows "Intake complete". The call is best-effort.
+  }
+};
+
 interface IntakeFormProps {
   /**
    * The completion-event emitter (the decoupling seam). Defaults to the
@@ -78,7 +95,7 @@ export function IntakeForm({ onIntakeCompleted }: IntakeFormProps) {
   const guardRef = React.useRef<IntakeCompletionGuard | null>(null);
   if (guardRef.current === null) {
     guardRef.current = new IntakeCompletionGuard(
-      onIntakeCompleted ?? defaultIntakeCompletedEmitter,
+      onIntakeCompleted ?? postIntakeCompleted,
     );
   }
 
