@@ -244,7 +244,7 @@ export function GrokVoiceCall() {
   const connecting = status === "connecting";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 390, margin: "0 auto", padding: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>Live Grok Voice call</h1>
         <span
@@ -325,7 +325,7 @@ export function GrokVoiceCall() {
       </div>
 
       <p style={{ fontSize: 11, color: "#999", marginTop: 8 }}>
-        Fairy provides educational fertility information, not medical advice.
+        Live xAI Grok Voice — you speak as the rep, Fairy (Grok) runs the call.
       </p>
     </div>
   );
